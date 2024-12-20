@@ -18,7 +18,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/openimsdk/protocol/sdkws"
+	"github.com/liony823/protocol/sdkws"
 )
 
 type MsgCache interface {

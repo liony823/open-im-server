@@ -2,17 +2,18 @@ package jssdk
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
-	"github.com/openimsdk/protocol/conversation"
-	"github.com/openimsdk/protocol/group"
-	"github.com/openimsdk/protocol/jssdk"
-	"github.com/openimsdk/protocol/msg"
-	"github.com/openimsdk/protocol/relation"
-	"github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/protocol/user"
-	"github.com/openimsdk/tools/mcontext"
-	"github.com/openimsdk/tools/utils/datautil"
 	"sort"
+
+	"github.com/gin-gonic/gin"
+	"github.com/liony823/protocol/conversation"
+	"github.com/liony823/protocol/group"
+	"github.com/liony823/protocol/jssdk"
+	"github.com/liony823/protocol/msg"
+	"github.com/liony823/protocol/relation"
+	"github.com/liony823/protocol/sdkws"
+	"github.com/liony823/protocol/user"
+	"github.com/liony823/tools/mcontext"
+	"github.com/liony823/tools/utils/datautil"
 )
 
 const (

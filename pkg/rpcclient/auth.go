@@ -17,9 +17,9 @@ package rpcclient
 import (
 	"context"
 
-	"github.com/openimsdk/protocol/auth"
-	"github.com/openimsdk/tools/discovery"
-	"github.com/openimsdk/tools/system/program"
+	"github.com/liony823/protocol/auth"
+	"github.com/liony823/tools/discovery"
+	"github.com/liony823/tools/system/program"
 	"google.golang.org/grpc"
 )
 

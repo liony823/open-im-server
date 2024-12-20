@@ -15,8 +15,8 @@
 package msg
 
 import (
-	"github.com/openimsdk/protocol/msg"
-	"github.com/openimsdk/tools/errs"
+	"github.com/liony823/protocol/msg"
+	"github.com/liony823/tools/errs"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 )

@@ -18,13 +18,13 @@ import (
 	"context"
 	"strings"
 
+	"github.com/liony823/protocol/constant"
+	"github.com/liony823/protocol/group"
+	"github.com/liony823/protocol/sdkws"
+	"github.com/liony823/tools/discovery"
+	"github.com/liony823/tools/system/program"
+	"github.com/liony823/tools/utils/datautil"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
-	"github.com/openimsdk/protocol/constant"
-	"github.com/openimsdk/protocol/group"
-	"github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/tools/discovery"
-	"github.com/openimsdk/tools/system/program"
-	"github.com/openimsdk/tools/utils/datautil"
 )
 
 type Group struct {

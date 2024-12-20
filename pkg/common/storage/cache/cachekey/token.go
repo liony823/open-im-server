@@ -1,8 +1,9 @@
 package cachekey
 
 import (
-	"github.com/openimsdk/protocol/constant"
 	"strings"
+
+	"github.com/liony823/protocol/constant"
 )
 
 const (

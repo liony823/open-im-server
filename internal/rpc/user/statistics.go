@@ -18,8 +18,8 @@ import (
 	"context"
 	"time"
 
-	pbuser "github.com/openimsdk/protocol/user"
-	"github.com/openimsdk/tools/errs"
+	pbuser "github.com/liony823/protocol/user"
+	"github.com/liony823/tools/errs"
 )
 
 func (s *userServer) UserRegisterCount(ctx context.Context, req *pbuser.UserRegisterCountReq) (*pbuser.UserRegisterCountResp, error) {

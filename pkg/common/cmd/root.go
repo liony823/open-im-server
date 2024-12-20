@@ -17,11 +17,11 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/liony823/tools/errs"
+	"github.com/liony823/tools/log"
+	"github.com/liony823/tools/utils/runtimeenv"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 	"github.com/openimsdk/open-im-server/v3/version"
-	"github.com/openimsdk/tools/errs"
-	"github.com/openimsdk/tools/log"
-	"github.com/openimsdk/tools/utils/runtimeenv"
 	"github.com/spf13/cobra"
 )
 

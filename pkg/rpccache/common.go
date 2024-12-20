@@ -15,7 +15,7 @@
 package rpccache
 
 import (
-	"github.com/openimsdk/tools/errs"
+	"github.com/liony823/tools/errs"
 	"google.golang.org/protobuf/proto"
 )
 

@@ -3,9 +3,10 @@ package batcher
 import (
 	"context"
 	"fmt"
-	"github.com/openimsdk/tools/utils/stringutil"
 	"testing"
 	"time"
+
+	"github.com/liony823/tools/utils/stringutil"
 )
 
 func TestBatcher(t *testing.T) {

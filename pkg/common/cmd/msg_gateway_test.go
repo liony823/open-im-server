@@ -18,9 +18,9 @@ import (
 	"math"
 	"testing"
 
-	"github.com/openimsdk/protocol/auth"
-	"github.com/openimsdk/tools/apiresp"
-	"github.com/openimsdk/tools/utils/jsonutil"
+	"github.com/liony823/protocol/auth"
+	"github.com/liony823/tools/apiresp"
+	"github.com/liony823/tools/utils/jsonutil"
 	"github.com/stretchr/testify/mock"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )

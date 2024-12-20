@@ -3,10 +3,10 @@ package user
 import (
 	"context"
 
-	"github.com/openimsdk/tools/utils/datautil"
+	"github.com/liony823/tools/utils/datautil"
 
-	"github.com/openimsdk/protocol/constant"
-	pbuser "github.com/openimsdk/protocol/user"
+	"github.com/liony823/protocol/constant"
+	pbuser "github.com/liony823/protocol/user"
 )
 
 func (s *userServer) getUserOnlineStatus(ctx context.Context, userID string) (*pbuser.OnlineStatus, error) {

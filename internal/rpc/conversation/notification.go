@@ -17,10 +17,10 @@ package conversation
 import (
 	"context"
 
+	"github.com/liony823/protocol/constant"
+	"github.com/liony823/protocol/sdkws"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
-	"github.com/openimsdk/protocol/constant"
-	"github.com/openimsdk/protocol/sdkws"
 )
 
 type ConversationNotificationSender struct {

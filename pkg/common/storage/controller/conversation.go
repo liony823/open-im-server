@@ -21,14 +21,14 @@ import (
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/database"
 	relationtb "github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
 
+	"github.com/liony823/protocol/constant"
+	"github.com/liony823/tools/db/pagination"
+	"github.com/liony823/tools/db/tx"
+	"github.com/liony823/tools/log"
+	"github.com/liony823/tools/utils/datautil"
+	"github.com/liony823/tools/utils/stringutil"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache"
 	"github.com/openimsdk/open-im-server/v3/pkg/msgprocessor"
-	"github.com/openimsdk/protocol/constant"
-	"github.com/openimsdk/tools/db/pagination"
-	"github.com/openimsdk/tools/db/tx"
-	"github.com/openimsdk/tools/log"
-	"github.com/openimsdk/tools/utils/datautil"
-	"github.com/openimsdk/tools/utils/stringutil"
 )
 
 type ConversationDatabase interface {

@@ -16,14 +16,19 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/liony823/protocol/constant"
+	"github.com/liony823/tools/apiresp"
+	"github.com/liony823/tools/discovery"
+	"github.com/liony823/tools/log"
+	"github.com/liony823/tools/mw"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/prommetrics"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
 	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
-	"github.com/openimsdk/protocol/constant"
-	"github.com/openimsdk/tools/apiresp"
-	"github.com/openimsdk/tools/discovery"
-	"github.com/openimsdk/tools/log"
-	"github.com/openimsdk/tools/mw"
+
+	_ "github.com/openimsdk/open-im-server/v3/cmd/swagger-docs"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 const (
@@ -74,6 +79,7 @@ func newGinRouter(disCov discovery.SvcDiscoveryRegistry, config *Config, client 
 	case BestSpeed:
 		r.Use(gzip.Gzip(gzip.BestSpeed))
 	}
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	r.Use(prommetricsGin(), gin.RecoveryWithWriter(gin.DefaultErrorWriter, mw.GinPanicErr), mw.CorsHandler(), mw.GinParseOperationID(), GinParseToken(authRpc))
 	u := NewUserApi(*userRpc)
 	m := NewMessageApi(messageRpc, userRpc, config.Share.IMAdminUserID)

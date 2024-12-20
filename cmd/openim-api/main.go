@@ -15,10 +15,30 @@
 package main
 
 import (
-	"github.com/openimsdk/open-im-server/v3/pkg/common/cmd"
-	"github.com/openimsdk/tools/system/program"
 	_ "net/http/pprof"
+
+	"github.com/liony823/tools/system/program"
+	"github.com/openimsdk/open-im-server/v3/pkg/common/cmd"
 )
+
+// @title          飞宏IM接口
+// @version        1.0.0
+// @description    飞宏IM接口
+
+// @contact.name   飞宏IM技术支持
+// @contact.url    https://github.com/liony823/chat
+// @contact.email  ilovecoding@foxmail.com
+
+// @license.name   Apache 2.0
+// @license.url    http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:10002
+// @BasePath  /
+
+// @securityDefinitions.apikey BearerAuth
+// @in                         header
+// @name                       token
+// @description               "Type 'Bearer' followed by a space and JWT token"
 
 func main() {
 	if err := cmd.NewApiCmd().Exec(); err != nil {

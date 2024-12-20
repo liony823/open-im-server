@@ -21,7 +21,7 @@ import (
 	"runtime"
 
 	"github.com/fatih/color"
-	"github.com/openimsdk/tools/utils/timeutil"
+	"github.com/liony823/tools/utils/timeutil"
 )
 
 func ExecuteCommand(cmdName string, args ...string) (string, error) {

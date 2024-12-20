@@ -15,11 +15,12 @@
 package convert
 
 import (
-	relationtb "github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
-	"github.com/openimsdk/tools/utils/datautil"
 	"time"
 
-	"github.com/openimsdk/protocol/sdkws"
+	"github.com/liony823/tools/utils/datautil"
+	relationtb "github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
+
+	"github.com/liony823/protocol/sdkws"
 )
 
 func UserDB2Pb(user *relationtb.User) *sdkws.UserInfo {

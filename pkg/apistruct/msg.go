@@ -14,7 +14,7 @@
 
 package apistruct
 
-import "github.com/openimsdk/protocol/sdkws"
+import "github.com/liony823/protocol/sdkws"
 
 type PictureBaseInfo struct {
 	UUID   string `mapstructure:"uuid"`

@@ -14,7 +14,7 @@
 
 package servererrs
 
-import "github.com/openimsdk/tools/errs"
+import "github.com/liony823/tools/errs"
 
 var (
 	ErrDatabase         = errs.NewCodeError(DatabaseError, "DatabaseError")

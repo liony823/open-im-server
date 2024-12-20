@@ -18,14 +18,14 @@ import (
 	"context"
 	"time"
 
+	"github.com/liony823/tools/db/pagination"
+	"github.com/liony823/tools/db/tx"
+	"github.com/liony823/tools/utils/datautil"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/database"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
-	"github.com/openimsdk/tools/db/pagination"
-	"github.com/openimsdk/tools/db/tx"
-	"github.com/openimsdk/tools/utils/datautil"
 
-	"github.com/openimsdk/protocol/user"
-	"github.com/openimsdk/tools/errs"
+	"github.com/liony823/protocol/user"
+	"github.com/liony823/tools/errs"
 
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache"
 )

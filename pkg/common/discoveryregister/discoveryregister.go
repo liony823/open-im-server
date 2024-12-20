@@ -17,13 +17,13 @@ package discoveryregister
 import (
 	"time"
 
+	"github.com/liony823/tools/discovery"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/tools/discovery"
 
-	"github.com/openimsdk/tools/discovery/kubernetes"
+	"github.com/liony823/tools/discovery/kubernetes"
 
-	"github.com/openimsdk/tools/discovery/etcd"
-	"github.com/openimsdk/tools/errs"
+	"github.com/liony823/tools/discovery/etcd"
+	"github.com/liony823/tools/errs"
 )
 
 const (

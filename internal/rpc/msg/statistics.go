@@ -16,12 +16,13 @@ package msg
 
 import (
 	"context"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
 	"time"
 
-	"github.com/openimsdk/protocol/msg"
-	"github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/tools/utils/datautil"
+	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
+
+	"github.com/liony823/protocol/msg"
+	"github.com/liony823/protocol/sdkws"
+	"github.com/liony823/tools/utils/datautil"
 )
 
 func (m *msgServer) GetActiveUser(ctx context.Context, req *msg.GetActiveUserReq) (*msg.GetActiveUserResp, error) {

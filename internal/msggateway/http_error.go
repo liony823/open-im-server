@@ -15,8 +15,8 @@
 package msggateway
 
 import (
-	"github.com/openimsdk/tools/apiresp"
-	"github.com/openimsdk/tools/log"
+	"github.com/liony823/tools/apiresp"
+	"github.com/liony823/tools/log"
 )
 
 func httpError(ctx *UserConnContext, err error) {

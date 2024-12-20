@@ -18,9 +18,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/openimsdk/protocol/constant"
-	"github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/tools/errs"
+	"github.com/liony823/protocol/constant"
+	"github.com/liony823/protocol/sdkws"
+	"github.com/liony823/tools/errs"
 	"google.golang.org/protobuf/proto"
 )
 

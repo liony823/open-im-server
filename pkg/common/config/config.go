@@ -18,14 +18,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openimsdk/tools/db/mongoutil"
-	"github.com/openimsdk/tools/db/redisutil"
-	"github.com/openimsdk/tools/mq/kafka"
-	"github.com/openimsdk/tools/s3/aws"
-	"github.com/openimsdk/tools/s3/cos"
-	"github.com/openimsdk/tools/s3/kodo"
-	"github.com/openimsdk/tools/s3/minio"
-	"github.com/openimsdk/tools/s3/oss"
+	"github.com/liony823/tools/db/mongoutil"
+	"github.com/liony823/tools/db/redisutil"
+	"github.com/liony823/tools/mq/kafka"
+	"github.com/liony823/tools/s3/aws"
+	"github.com/liony823/tools/s3/cos"
+	"github.com/liony823/tools/s3/kodo"
+	"github.com/liony823/tools/s3/minio"
+	"github.com/liony823/tools/s3/oss"
 )
 
 type CacheConfig struct {

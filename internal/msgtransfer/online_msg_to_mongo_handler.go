@@ -18,12 +18,12 @@ import (
 	"context"
 
 	"github.com/IBM/sarama"
+	pbmsg "github.com/liony823/protocol/msg"
+	"github.com/liony823/tools/log"
+	"github.com/liony823/tools/mq/kafka"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/prommetrics"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/controller"
-	pbmsg "github.com/openimsdk/protocol/msg"
-	"github.com/openimsdk/tools/log"
-	"github.com/openimsdk/tools/mq/kafka"
 	"google.golang.org/protobuf/proto"
 )
 

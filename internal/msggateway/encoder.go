@@ -19,7 +19,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 
-	"github.com/openimsdk/tools/errs"
+	"github.com/liony823/tools/errs"
 )
 
 type Encoder interface {

@@ -19,10 +19,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/openimsdk/tools/apiresp"
+	"github.com/liony823/tools/apiresp"
 
 	"github.com/gorilla/websocket"
-	"github.com/openimsdk/tools/errs"
+	"github.com/liony823/tools/errs"
 )
 
 type LongConn interface {

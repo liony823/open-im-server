@@ -18,8 +18,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/openimsdk/protocol/group"
-	"github.com/openimsdk/tools/errs"
+	"github.com/liony823/protocol/group"
+	"github.com/liony823/tools/errs"
 )
 
 func (s *groupServer) GroupCreateCount(ctx context.Context, req *group.GroupCreateCountReq) (*group.GroupCreateCountResp, error) {

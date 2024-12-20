@@ -16,18 +16,19 @@ package msg
 
 import (
 	"context"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
-	"github.com/openimsdk/tools/utils/datautil"
-	"github.com/openimsdk/tools/utils/encrypt"
-	"github.com/openimsdk/tools/utils/timeutil"
 	"math/rand"
 	"strconv"
 	"time"
 
-	"github.com/openimsdk/protocol/constant"
-	"github.com/openimsdk/protocol/msg"
-	"github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/tools/errs"
+	"github.com/liony823/tools/utils/datautil"
+	"github.com/liony823/tools/utils/encrypt"
+	"github.com/liony823/tools/utils/timeutil"
+	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
+
+	"github.com/liony823/protocol/constant"
+	"github.com/liony823/protocol/msg"
+	"github.com/liony823/protocol/sdkws"
+	"github.com/liony823/tools/errs"
 )
 
 var ExcludeContentType = []int{constant.HasReadReceipt}

@@ -18,8 +18,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/liony823/protocol/msg"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
-	"github.com/openimsdk/protocol/msg"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 

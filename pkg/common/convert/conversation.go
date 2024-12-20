@@ -15,9 +15,9 @@
 package convert
 
 import (
+	"github.com/liony823/protocol/conversation"
+	"github.com/liony823/tools/utils/datautil"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
-	"github.com/openimsdk/protocol/conversation"
-	"github.com/openimsdk/tools/utils/datautil"
 )
 
 func ConversationDB2Pb(conversationDB *model.Conversation) *conversation.Conversation {

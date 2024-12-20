@@ -22,17 +22,17 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/liony823/protocol/constant"
+	"github.com/liony823/protocol/msg"
+	"github.com/liony823/protocol/sdkws"
+	"github.com/liony823/tools/discovery"
+	"github.com/liony823/tools/log"
+	"github.com/liony823/tools/mq/memamq"
+	"github.com/liony823/tools/system/program"
+	"github.com/liony823/tools/utils/idutil"
+	"github.com/liony823/tools/utils/jsonutil"
+	"github.com/liony823/tools/utils/timeutil"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/protocol/constant"
-	"github.com/openimsdk/protocol/msg"
-	"github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/tools/discovery"
-	"github.com/openimsdk/tools/log"
-	"github.com/openimsdk/tools/mq/memamq"
-	"github.com/openimsdk/tools/system/program"
-	"github.com/openimsdk/tools/utils/idutil"
-	"github.com/openimsdk/tools/utils/jsonutil"
-	"github.com/openimsdk/tools/utils/timeutil"
 )
 
 func newContentTypeConf(conf *config.Notification) map[int32]config.NotificationConfig {

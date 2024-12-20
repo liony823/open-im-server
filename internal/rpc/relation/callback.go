@@ -19,9 +19,9 @@ import (
 
 	"github.com/openimsdk/open-im-server/v3/pkg/common/webhook"
 
+	"github.com/liony823/protocol/relation"
 	cbapi "github.com/openimsdk/open-im-server/v3/pkg/callbackstruct"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/protocol/relation"
 )
 
 func (s *friendServer) webhookAfterDeleteFriend(ctx context.Context, after *config.AfterConfig, req *relation.DeleteFriendReq) {

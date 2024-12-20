@@ -1,9 +1,10 @@
 package msggateway
 
 import (
-	"github.com/openimsdk/tools/utils/datautil"
 	"sync"
 	"time"
+
+	"github.com/liony823/tools/utils/datautil"
 )
 
 type UserMap interface {

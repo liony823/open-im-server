@@ -26,18 +26,18 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/liony823/tools/discovery"
+	"github.com/liony823/tools/discovery/etcd"
+	"github.com/liony823/tools/errs"
+	"github.com/liony823/tools/log"
+	"github.com/liony823/tools/system/program"
+	"github.com/liony823/tools/utils/datautil"
+	"github.com/liony823/tools/utils/jsonutil"
+	"github.com/liony823/tools/utils/network"
+	"github.com/liony823/tools/utils/runtimeenv"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 	kdisc "github.com/openimsdk/open-im-server/v3/pkg/common/discoveryregister"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/prommetrics"
-	"github.com/openimsdk/tools/discovery"
-	"github.com/openimsdk/tools/discovery/etcd"
-	"github.com/openimsdk/tools/errs"
-	"github.com/openimsdk/tools/log"
-	"github.com/openimsdk/tools/system/program"
-	"github.com/openimsdk/tools/utils/datautil"
-	"github.com/openimsdk/tools/utils/jsonutil"
-	"github.com/openimsdk/tools/utils/network"
-	"github.com/openimsdk/tools/utils/runtimeenv"
 )
 
 type Config struct {

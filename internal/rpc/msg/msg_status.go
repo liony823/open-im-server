@@ -17,9 +17,9 @@ package msg
 import (
 	"context"
 
-	"github.com/openimsdk/protocol/constant"
-	pbmsg "github.com/openimsdk/protocol/msg"
-	"github.com/openimsdk/tools/mcontext"
+	"github.com/liony823/protocol/constant"
+	pbmsg "github.com/liony823/protocol/msg"
+	"github.com/liony823/tools/mcontext"
 )
 
 func (m *msgServer) SetSendMsgStatus(ctx context.Context, req *pbmsg.SetSendMsgStatusReq) (*pbmsg.SetSendMsgStatusResp, error) {

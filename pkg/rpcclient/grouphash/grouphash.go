@@ -20,9 +20,9 @@ import (
 	"encoding/binary"
 	"encoding/json"
 
-	"github.com/openimsdk/protocol/group"
-	"github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/tools/utils/datautil"
+	"github.com/liony823/protocol/group"
+	"github.com/liony823/protocol/sdkws"
+	"github.com/liony823/tools/utils/datautil"
 )
 
 func NewGroupHashFromGroupClient(x group.GroupClient) *GroupHash {

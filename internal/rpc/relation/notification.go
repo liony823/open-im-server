@@ -16,20 +16,21 @@ package relation
 
 import (
 	"context"
+
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/database"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/versionctx"
 
 	relationtb "github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
 
+	"github.com/liony823/protocol/constant"
+	"github.com/liony823/protocol/relation"
+	"github.com/liony823/protocol/sdkws"
+	"github.com/liony823/tools/mcontext"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/convert"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/controller"
 	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
 	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient/notification"
-	"github.com/openimsdk/protocol/constant"
-	"github.com/openimsdk/protocol/relation"
-	"github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/tools/mcontext"
 )
 
 type FriendNotificationSender struct {

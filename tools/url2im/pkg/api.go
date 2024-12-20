@@ -22,9 +22,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/openimsdk/protocol/auth"
-	"github.com/openimsdk/protocol/third"
-	"github.com/openimsdk/tools/errs"
+	"github.com/liony823/protocol/auth"
+	"github.com/liony823/protocol/third"
+	"github.com/liony823/tools/errs"
 )
 
 type Api struct {

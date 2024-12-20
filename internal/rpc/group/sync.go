@@ -3,16 +3,16 @@ package group
 import (
 	"context"
 
+	"github.com/liony823/protocol/constant"
+	pbgroup "github.com/liony823/protocol/group"
+	"github.com/liony823/protocol/sdkws"
+	"github.com/liony823/tools/errs"
+	"github.com/liony823/tools/log"
 	"github.com/openimsdk/open-im-server/v3/internal/rpc/incrversion"
 	"github.com/openimsdk/open-im-server/v3/pkg/authverify"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
 	"github.com/openimsdk/open-im-server/v3/pkg/util/hashutil"
-	"github.com/openimsdk/protocol/constant"
-	pbgroup "github.com/openimsdk/protocol/group"
-	"github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/tools/errs"
-	"github.com/openimsdk/tools/log"
 )
 
 func (s *groupServer) GetFullGroupMemberUserIDs(ctx context.Context, req *pbgroup.GetFullGroupMemberUserIDsReq) (*pbgroup.GetFullGroupMemberUserIDsResp, error) {

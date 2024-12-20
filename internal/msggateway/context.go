@@ -15,16 +15,17 @@
 package msggateway
 
 import (
-	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
 
-	"github.com/openimsdk/protocol/constant"
-	"github.com/openimsdk/tools/utils/encrypt"
-	"github.com/openimsdk/tools/utils/stringutil"
-	"github.com/openimsdk/tools/utils/timeutil"
+	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
+
+	"github.com/liony823/protocol/constant"
+	"github.com/liony823/tools/utils/encrypt"
+	"github.com/liony823/tools/utils/stringutil"
+	"github.com/liony823/tools/utils/timeutil"
 )
 
 type UserConnContext struct {

@@ -25,14 +25,14 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/liony823/protocol/constant"
+	"github.com/liony823/protocol/sdkws"
+	"github.com/liony823/tools/apiresp"
+	"github.com/liony823/tools/errs"
+	"github.com/liony823/tools/log"
+	"github.com/liony823/tools/mcontext"
+	"github.com/liony823/tools/utils/stringutil"
 	"github.com/openimsdk/open-im-server/v3/pkg/msgprocessor"
-	"github.com/openimsdk/protocol/constant"
-	"github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/tools/apiresp"
-	"github.com/openimsdk/tools/errs"
-	"github.com/openimsdk/tools/log"
-	"github.com/openimsdk/tools/mcontext"
-	"github.com/openimsdk/tools/utils/stringutil"
 )
 
 var (

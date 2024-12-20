@@ -15,9 +15,10 @@
 package model
 
 import (
-	"github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/tools/errs"
 	"strconv"
+
+	"github.com/liony823/protocol/sdkws"
+	"github.com/liony823/tools/errs"
 )
 
 const (

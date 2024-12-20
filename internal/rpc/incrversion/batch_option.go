@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/liony823/tools/errs"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
-	"github.com/openimsdk/tools/errs"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

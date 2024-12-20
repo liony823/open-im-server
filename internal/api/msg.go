@@ -17,23 +17,23 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/liony823/protocol/constant"
+	"github.com/liony823/protocol/msg"
+	"github.com/liony823/protocol/sdkws"
+	"github.com/liony823/tools/a2r"
+	"github.com/liony823/tools/apiresp"
+	"github.com/liony823/tools/errs"
+	"github.com/liony823/tools/log"
+	"github.com/liony823/tools/mcontext"
+	"github.com/liony823/tools/utils/datautil"
+	"github.com/liony823/tools/utils/idutil"
+	"github.com/liony823/tools/utils/jsonutil"
+	"github.com/liony823/tools/utils/timeutil"
 	"github.com/mitchellh/mapstructure"
 	"github.com/openimsdk/open-im-server/v3/pkg/apistruct"
 	"github.com/openimsdk/open-im-server/v3/pkg/authverify"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
-	"github.com/openimsdk/protocol/constant"
-	"github.com/openimsdk/protocol/msg"
-	"github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/tools/a2r"
-	"github.com/openimsdk/tools/apiresp"
-	"github.com/openimsdk/tools/errs"
-	"github.com/openimsdk/tools/log"
-	"github.com/openimsdk/tools/mcontext"
-	"github.com/openimsdk/tools/utils/datautil"
-	"github.com/openimsdk/tools/utils/idutil"
-	"github.com/openimsdk/tools/utils/jsonutil"
-	"github.com/openimsdk/tools/utils/timeutil"
 )
 
 type MessageApi struct {
@@ -362,6 +362,14 @@ func (m *MessageApi) GetUsersOnlineStatus(c *gin.Context) {
 	a2r.Call(msg.MsgClient.GetSendMsgStatus, m.Client, c)
 }
 
+// @Summary 获取活跃用户
+// @Description 获取活跃用户
+// @Tags statistics
+// @Id GetActiveUser
+// @Accept json
+// @Produce json
+// @Success 200 {object}  apiresp.ApiResponse{data=msg.GetActiveUserResp}
+// @Router /statistics/user/active [post]
 func (m *MessageApi) GetActiveUser(c *gin.Context) {
 	a2r.Call(msg.MsgClient.GetActiveUser, m.Client, c)
 }

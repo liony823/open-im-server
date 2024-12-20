@@ -15,9 +15,9 @@
 package callbackstruct
 
 import (
+	common "github.com/liony823/protocol/sdkws"
+	"github.com/liony823/protocol/wrapperspb"
 	"github.com/openimsdk/open-im-server/v3/pkg/apistruct"
-	common "github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/protocol/wrapperspb"
 )
 
 type CallbackCommand string

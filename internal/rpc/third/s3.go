@@ -28,15 +28,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/google/uuid"
+	"github.com/liony823/protocol/sdkws"
+	"github.com/liony823/protocol/third"
+	"github.com/liony823/tools/errs"
+	"github.com/liony823/tools/log"
+	"github.com/liony823/tools/mcontext"
+	"github.com/liony823/tools/s3"
+	"github.com/liony823/tools/s3/cont"
+	"github.com/liony823/tools/utils/datautil"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
-	"github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/protocol/third"
-	"github.com/openimsdk/tools/errs"
-	"github.com/openimsdk/tools/log"
-	"github.com/openimsdk/tools/mcontext"
-	"github.com/openimsdk/tools/s3"
-	"github.com/openimsdk/tools/s3/cont"
-	"github.com/openimsdk/tools/utils/datautil"
 )
 
 func (t *thirdServer) PartLimit(ctx context.Context, req *third.PartLimitReq) (*third.PartLimitResp, error) {

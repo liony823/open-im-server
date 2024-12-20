@@ -17,8 +17,8 @@ package database
 import (
 	"context"
 
+	"github.com/liony823/tools/db/pagination"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
-	"github.com/openimsdk/tools/db/pagination"
 )
 
 type GroupMember interface {

@@ -16,14 +16,14 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/liony823/protocol/constant"
+	"github.com/liony823/protocol/msggateway"
+	"github.com/liony823/protocol/user"
+	"github.com/liony823/tools/a2r"
+	"github.com/liony823/tools/apiresp"
+	"github.com/liony823/tools/errs"
+	"github.com/liony823/tools/log"
 	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
-	"github.com/openimsdk/protocol/constant"
-	"github.com/openimsdk/protocol/msggateway"
-	"github.com/openimsdk/protocol/user"
-	"github.com/openimsdk/tools/a2r"
-	"github.com/openimsdk/tools/apiresp"
-	"github.com/openimsdk/tools/errs"
-	"github.com/openimsdk/tools/log"
 )
 
 type UserApi rpcclient.User
@@ -121,6 +121,14 @@ func (u *UserApi) GetUsersOnlineStatus(c *gin.Context) {
 	apiresp.GinSuccess(c, respResult)
 }
 
+// @Summary 获取注册用户数
+// @Description 获取注册用户数
+// @Tags statistics
+// @Id UserRegisterCount
+// @Accept json
+// @Produce json
+// @Success 200 {object}  apiresp.ApiResponse{data=user.UserRegisterCountResp}
+// @Router /statistics/user/register [post]
 func (u *UserApi) UserRegisterCount(c *gin.Context) {
 	a2r.Call(user.UserClient.UserRegisterCount, u.Client, c)
 }

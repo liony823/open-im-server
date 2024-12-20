@@ -18,10 +18,10 @@ import (
 	"context"
 	"time"
 
-	pbgroup "github.com/openimsdk/protocol/group"
-	"github.com/openimsdk/protocol/sdkws"
-	"github.com/openimsdk/tools/errs"
-	"github.com/openimsdk/tools/mcontext"
+	pbgroup "github.com/liony823/protocol/group"
+	"github.com/liony823/protocol/sdkws"
+	"github.com/liony823/tools/errs"
+	"github.com/liony823/tools/mcontext"
 )
 
 func UpdateGroupInfoMap(ctx context.Context, group *sdkws.GroupInfoForSet) map[string]any {
