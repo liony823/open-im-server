@@ -133,6 +133,15 @@ func (o *GroupApi) GetGroupAbstractInfo(c *gin.Context) {
 //	a2r.Call(group.GroupClient.GetGroupAllMember, g.userClient, c)
 //}
 
+// @Summary 获取创建群数量
+// @Description 获取创建群数量
+// @Tags statistics
+// @Id GroupCreateCount
+// @Accept json
+// @Produce json
+// @Param data body group.GroupCreateCountReq true "请求参数"
+// @Success 200 {object} apiresp.ApiResponse{data=group.GroupCreateCountResp}
+// @Router /statistics/group/create [post]
 func (o *GroupApi) GroupCreateCount(c *gin.Context) {
 	a2r.Call(group.GroupClient.GroupCreateCount, o.Client, c)
 }

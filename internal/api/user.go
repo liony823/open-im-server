@@ -127,6 +127,7 @@ func (u *UserApi) GetUsersOnlineStatus(c *gin.Context) {
 // @Id UserRegisterCount
 // @Accept json
 // @Produce json
+// @Param data body user.UserRegisterCountReq true "请求参数"
 // @Success 200 {object}  apiresp.ApiResponse{data=user.UserRegisterCountResp}
 // @Router /statistics/user/register [post]
 func (u *UserApi) UserRegisterCount(c *gin.Context) {

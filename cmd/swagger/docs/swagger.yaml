@@ -10,12 +10,76 @@ definitions:
       errMsg:
         type: string
     type: object
+  group.GroupCreateCountReq:
+    properties:
+      end:
+        type: integer
+      start:
+        type: integer
+    type: object
+  group.GroupCreateCountResp:
+    properties:
+      before:
+        type: integer
+      count:
+        additionalProperties:
+          type: integer
+        type: object
+      total:
+        type: integer
+    type: object
+  msg.ActiveGroup:
+    properties:
+      count:
+        type: integer
+      group:
+        $ref: '#/definitions/sdkws.GroupInfo'
+    type: object
   msg.ActiveUser:
     properties:
       count:
         type: integer
       user:
         $ref: '#/definitions/sdkws.UserInfo'
+    type: object
+  msg.GetActiveGroupReq:
+    properties:
+      ase:
+        type: boolean
+      end:
+        type: integer
+      pagination:
+        $ref: '#/definitions/sdkws.RequestPagination'
+      start:
+        type: integer
+    type: object
+  msg.GetActiveGroupResp:
+    properties:
+      dateCount:
+        additionalProperties:
+          type: integer
+        type: object
+      groupCount:
+        type: integer
+      groups:
+        items:
+          $ref: '#/definitions/msg.ActiveGroup'
+        type: array
+      msgCount:
+        type: integer
+    type: object
+  msg.GetActiveUserReq:
+    properties:
+      ase:
+        type: boolean
+      end:
+        type: integer
+      group:
+        type: boolean
+      pagination:
+        $ref: '#/definitions/sdkws.RequestPagination'
+      start:
+        type: integer
     type: object
   msg.GetActiveUserResp:
     properties:
@@ -31,6 +95,50 @@ definitions:
         items:
           $ref: '#/definitions/msg.ActiveUser'
         type: array
+    type: object
+  sdkws.GroupInfo:
+    properties:
+      applyMemberFriend:
+        type: integer
+      createTime:
+        type: integer
+      creatorUserID:
+        type: string
+      ex:
+        type: string
+      faceURL:
+        type: string
+      groupID:
+        type: string
+      groupName:
+        type: string
+      groupType:
+        type: integer
+      introduction:
+        type: string
+      lookMemberInfo:
+        type: integer
+      memberCount:
+        type: integer
+      needVerification:
+        type: integer
+      notification:
+        type: string
+      notificationUpdateTime:
+        type: integer
+      notificationUserID:
+        type: string
+      ownerUserID:
+        type: string
+      status:
+        type: integer
+    type: object
+  sdkws.RequestPagination:
+    properties:
+      pageNumber:
+        type: integer
+      showNumber:
+        type: integer
     type: object
   sdkws.UserInfo:
     properties:
@@ -48,6 +156,13 @@ definitions:
         type: string
       userID:
         type: string
+    type: object
+  user.UserRegisterCountReq:
+    properties:
+      end:
+        type: integer
+      start:
+        type: integer
     type: object
   user.UserRegisterCountResp:
     properties:
@@ -73,12 +188,75 @@ info:
   title: 飞宏IM接口
   version: 1.0.0
 paths:
+  /statistics/group/active:
+    post:
+      consumes:
+      - application/json
+      description: 获取活跃群
+      operationId: GetActiveGroup
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/msg.GetActiveGroupReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/msg.GetActiveGroupResp'
+              type: object
+      summary: 获取活跃群
+      tags:
+      - statistics
+  /statistics/group/create:
+    post:
+      consumes:
+      - application/json
+      description: 获取创建群数量
+      operationId: GroupCreateCount
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/group.GroupCreateCountReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/group.GroupCreateCountResp'
+              type: object
+      summary: 获取创建群数量
+      tags:
+      - statistics
   /statistics/user/active:
     post:
       consumes:
       - application/json
       description: 获取活跃用户
       operationId: GetActiveUser
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/msg.GetActiveUserReq'
       produces:
       - application/json
       responses:
@@ -100,6 +278,13 @@ paths:
       - application/json
       description: 获取注册用户数
       operationId: UserRegisterCount
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/user.UserRegisterCountReq'
       produces:
       - application/json
       responses:

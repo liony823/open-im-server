@@ -25,7 +25,7 @@ import (
 	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
 	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
 
-	_ "github.com/openimsdk/open-im-server/v3/cmd/swagger-docs"
+	_ "github.com/openimsdk/open-im-server/v3/cmd/swagger/docs"
 
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"

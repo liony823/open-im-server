@@ -368,12 +368,22 @@ func (m *MessageApi) GetUsersOnlineStatus(c *gin.Context) {
 // @Id GetActiveUser
 // @Accept json
 // @Produce json
+// @Param data body msg.GetActiveUserReq true "请求参数"
 // @Success 200 {object}  apiresp.ApiResponse{data=msg.GetActiveUserResp}
 // @Router /statistics/user/active [post]
 func (m *MessageApi) GetActiveUser(c *gin.Context) {
 	a2r.Call(msg.MsgClient.GetActiveUser, m.Client, c)
 }
 
+// @Summary 获取活跃群
+// @Description 获取活跃群
+// @Tags statistics
+// @Id GetActiveGroup
+// @Accept json
+// @Produce json
+// @Param data body msg.GetActiveGroupReq true "请求参数"
+// @Success 200 {object} apiresp.ApiResponse{data=msg.GetActiveGroupResp}
+// @Router /statistics/group/active [post]
 func (m *MessageApi) GetActiveGroup(c *gin.Context) {
 	a2r.Call(msg.MsgClient.GetActiveGroup, m.Client, c)
 }

@@ -23,6 +23,100 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/statistics/group/active": {
+            "post": {
+                "description": "获取活跃群",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "statistics"
+                ],
+                "summary": "获取活跃群",
+                "operationId": "GetActiveGroup",
+                "parameters": [
+                    {
+                        "description": "请求参数",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/msg.GetActiveGroupReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/apiresp.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/msg.GetActiveGroupResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/statistics/group/create": {
+            "post": {
+                "description": "获取创建群数量",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "statistics"
+                ],
+                "summary": "获取创建群数量",
+                "operationId": "GroupCreateCount",
+                "parameters": [
+                    {
+                        "description": "请求参数",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/group.GroupCreateCountReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/apiresp.ApiResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/group.GroupCreateCountResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/statistics/user/active": {
             "post": {
                 "description": "获取活跃用户",
@@ -37,6 +131,17 @@ const docTemplate = `{
                 ],
                 "summary": "获取活跃用户",
                 "operationId": "GetActiveUser",
+                "parameters": [
+                    {
+                        "description": "请求参数",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/msg.GetActiveUserReq"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -73,6 +178,17 @@ const docTemplate = `{
                 ],
                 "summary": "获取注册用户数",
                 "operationId": "UserRegisterCount",
+                "parameters": [
+                    {
+                        "description": "请求参数",
+                        "name": "data",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.UserRegisterCountReq"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -112,6 +228,45 @@ const docTemplate = `{
                 }
             }
         },
+        "group.GroupCreateCountReq": {
+            "type": "object",
+            "properties": {
+                "end": {
+                    "type": "integer"
+                },
+                "start": {
+                    "type": "integer"
+                }
+            }
+        },
+        "group.GroupCreateCountResp": {
+            "type": "object",
+            "properties": {
+                "before": {
+                    "type": "integer"
+                },
+                "count": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "msg.ActiveGroup": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "group": {
+                    "$ref": "#/definitions/sdkws.GroupInfo"
+                }
+            }
+        },
         "msg.ActiveUser": {
             "type": "object",
             "properties": {
@@ -120,6 +275,66 @@ const docTemplate = `{
                 },
                 "user": {
                     "$ref": "#/definitions/sdkws.UserInfo"
+                }
+            }
+        },
+        "msg.GetActiveGroupReq": {
+            "type": "object",
+            "properties": {
+                "ase": {
+                    "type": "boolean"
+                },
+                "end": {
+                    "type": "integer"
+                },
+                "pagination": {
+                    "$ref": "#/definitions/sdkws.RequestPagination"
+                },
+                "start": {
+                    "type": "integer"
+                }
+            }
+        },
+        "msg.GetActiveGroupResp": {
+            "type": "object",
+            "properties": {
+                "dateCount": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer"
+                    }
+                },
+                "groupCount": {
+                    "type": "integer"
+                },
+                "groups": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/msg.ActiveGroup"
+                    }
+                },
+                "msgCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "msg.GetActiveUserReq": {
+            "type": "object",
+            "properties": {
+                "ase": {
+                    "type": "boolean"
+                },
+                "end": {
+                    "type": "integer"
+                },
+                "group": {
+                    "type": "boolean"
+                },
+                "pagination": {
+                    "$ref": "#/definitions/sdkws.RequestPagination"
+                },
+                "start": {
+                    "type": "integer"
                 }
             }
         },
@@ -146,6 +361,73 @@ const docTemplate = `{
                 }
             }
         },
+        "sdkws.GroupInfo": {
+            "type": "object",
+            "properties": {
+                "applyMemberFriend": {
+                    "type": "integer"
+                },
+                "createTime": {
+                    "type": "integer"
+                },
+                "creatorUserID": {
+                    "type": "string"
+                },
+                "ex": {
+                    "type": "string"
+                },
+                "faceURL": {
+                    "type": "string"
+                },
+                "groupID": {
+                    "type": "string"
+                },
+                "groupName": {
+                    "type": "string"
+                },
+                "groupType": {
+                    "type": "integer"
+                },
+                "introduction": {
+                    "type": "string"
+                },
+                "lookMemberInfo": {
+                    "type": "integer"
+                },
+                "memberCount": {
+                    "type": "integer"
+                },
+                "needVerification": {
+                    "type": "integer"
+                },
+                "notification": {
+                    "type": "string"
+                },
+                "notificationUpdateTime": {
+                    "type": "integer"
+                },
+                "notificationUserID": {
+                    "type": "string"
+                },
+                "ownerUserID": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "sdkws.RequestPagination": {
+            "type": "object",
+            "properties": {
+                "pageNumber": {
+                    "type": "integer"
+                },
+                "showNumber": {
+                    "type": "integer"
+                }
+            }
+        },
         "sdkws.UserInfo": {
             "type": "object",
             "properties": {
@@ -169,6 +451,17 @@ const docTemplate = `{
                 },
                 "userID": {
                     "type": "string"
+                }
+            }
+        },
+        "user.UserRegisterCountReq": {
+            "type": "object",
+            "properties": {
+                "end": {
+                    "type": "integer"
+                },
+                "start": {
+                    "type": "integer"
                 }
             }
         },
