@@ -26,26 +26,29 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/liony823/tools/discovery"
+	conf "github.com/liony823/open-im-server/v3/pkg/common/config"
+	kdisc "github.com/liony823/open-im-server/v3/pkg/common/discovery"
+	disetcd "github.com/liony823/open-im-server/v3/pkg/common/discovery/etcd"
+
+	"github.com/liony823/open-im-server/v3/pkg/common/prommetrics"
 	"github.com/liony823/tools/discovery/etcd"
 	"github.com/liony823/tools/errs"
 	"github.com/liony823/tools/log"
+	"github.com/liony823/tools/mw"
 	"github.com/liony823/tools/system/program"
 	"github.com/liony823/tools/utils/datautil"
 	"github.com/liony823/tools/utils/jsonutil"
 	"github.com/liony823/tools/utils/network"
 	"github.com/liony823/tools/utils/runtimeenv"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	kdisc "github.com/openimsdk/open-im-server/v3/pkg/common/discoveryregister"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/prommetrics"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type Config struct {
-	API       config.API
-	Share     config.Share
-	Discovery config.Discovery
+	*conf.AllConfig
 
 	RuntimeEnv string
+	ConfigPath string
 }
 
 func Start(ctx context.Context, index int, config *Config) error {
@@ -56,13 +59,11 @@ func Start(ctx context.Context, index int, config *Config) error {
 
 	config.RuntimeEnv = runtimeenv.PrintRuntimeEnvironment()
 
-	var client discovery.SvcDiscoveryRegistry
-
-	// Determine whether zk is passed according to whether it is a clustered deployment
-	client, err = kdisc.NewDiscoveryRegister(&config.Discovery, config.RuntimeEnv)
+	client, err := kdisc.NewDiscoveryRegister(&config.Discovery, config.RuntimeEnv)
 	if err != nil {
 		return errs.WrapMsg(err, "failed to register discovery service")
 	}
+	client.AddOption(mw.GrpcClient(), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"LoadBalancingPolicy": "%s"}`, "round_robin")))
 
 	var (
 		netDone        = make(chan struct{}, 1)
@@ -86,11 +87,14 @@ func Start(ctx context.Context, index int, config *Config) error {
 		return listener, port, nil
 	}
 
-	if config.API.Prometheus.AutoSetPorts && config.Discovery.Enable != kdisc.Etcd {
+	if config.API.Prometheus.AutoSetPorts && config.Discovery.Enable != conf.ETCD {
 		return errs.New("only etcd support autoSetPorts", "RegisterName", "api").Wrap()
 	}
 
-	router := newGinRouter(client, config, client)
+	router, err := newGinRouter(ctx, client, config)
+	if err != nil {
+		return err
+	}
 	if config.API.Prometheus.Enable {
 		var (
 			listener net.Listener
@@ -136,21 +140,32 @@ func Start(ctx context.Context, index int, config *Config) error {
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			netErr = errs.WrapMsg(err, fmt.Sprintf("api start err: %s", server.Addr))
 			netDone <- struct{}{}
-
 		}
 	}()
+
+	if config.Discovery.Enable == conf.ETCD {
+		cm := disetcd.NewConfigManager(client.(*etcd.SvcDiscoveryRegistryImpl).GetClient(), config.GetConfigNames())
+		cm.Watch(ctx)
+	}
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-	select {
-	case <-sigs:
-		program.SIGTERMExit()
+	shutdown := func() error {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
 		err := server.Shutdown(ctx)
 		if err != nil {
 			return errs.WrapMsg(err, "shutdown err")
+		}
+		return nil
+	}
+	disetcd.RegisterShutDown(shutdown)
+	select {
+	case <-sigs:
+		program.SIGTERMExit()
+		if err := shutdown(); err != nil {
+			return err
 		}
 	case <-netDone:
 		close(netDone)

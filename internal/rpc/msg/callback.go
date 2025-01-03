@@ -17,15 +17,15 @@ package msg
 import (
 	"context"
 
-	"github.com/openimsdk/open-im-server/v3/pkg/common/webhook"
+	"github.com/liony823/open-im-server/v3/pkg/common/webhook"
 
+	cbapi "github.com/liony823/open-im-server/v3/pkg/callbackstruct"
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
 	"github.com/liony823/protocol/constant"
 	pbchat "github.com/liony823/protocol/msg"
 	"github.com/liony823/protocol/sdkws"
 	"github.com/liony823/tools/mcontext"
 	"github.com/liony823/tools/utils/datautil"
-	cbapi "github.com/openimsdk/open-im-server/v3/pkg/callbackstruct"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 	"google.golang.org/protobuf/proto"
 )
 

@@ -19,14 +19,14 @@ import (
 	"crypto/rand"
 	"time"
 
-	relationtb "github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
-
+	"github.com/liony823/open-im-server/v3/pkg/authverify"
+	"github.com/liony823/open-im-server/v3/pkg/common/servererrs"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/protocol/third"
 	"github.com/liony823/tools/errs"
 	"github.com/liony823/tools/utils/datautil"
-	"github.com/openimsdk/open-im-server/v3/pkg/authverify"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
+
+	relationtb "github.com/liony823/open-im-server/v3/pkg/common/storage/model"
 )
 
 func genLogID() string {
@@ -149,7 +149,7 @@ func (t *thirdServer) SearchLogs(ctx context.Context, req *third.SearchLogsReq) 
 	for _, log := range logs {
 		userIDs = append(userIDs, log.UserID)
 	}
-	userMap, err := t.userRpcClient.GetUsersInfoMap(ctx, userIDs)
+	userMap, err := t.userClient.GetUsersInfoMap(ctx, userIDs)
 	if err != nil {
 		return nil, err
 	}

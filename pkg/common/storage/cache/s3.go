@@ -17,8 +17,8 @@ package cache
 import (
 	"context"
 
+	relationtb "github.com/liony823/open-im-server/v3/pkg/common/storage/model"
 	"github.com/liony823/tools/s3"
-	relationtb "github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
 )
 
 type ObjectCache interface {

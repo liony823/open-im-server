@@ -1,6 +1,8 @@
-module github.com/openimsdk/open-im-server/v3
+module github.com/liony823/open-im-server/v3
 
-go 1.23.2
+go 1.22.7
+
+replace github.com/liony823/open-im-server/v3 => ./
 
 require (
 	firebase.google.com/go/v4 v4.14.1
@@ -11,8 +13,8 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.1
 	github.com/gorilla/websocket v1.5.1
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/liony823/protocol v0.0.1-alpha.2
-	github.com/liony823/tools v0.0.1-alpha.5
+	github.com/liony823/protocol v0.0.1-alpha.4
+	github.com/liony823/tools v0.0.1-alpha.6
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.18.0
@@ -43,7 +45,6 @@ require (
 	github.com/swaggo/swag v1.16.2
 	go.etcd.io/etcd/client/v3 v3.5.13
 	go.uber.org/automaxprocs v1.5.3
-	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	golang.org/x/sync v0.8.0
 	k8s.io/api v0.31.2
 	k8s.io/apimachinery v0.31.2
@@ -191,6 +192,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.7.0 // indirect
+	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/image v0.15.0 // indirect
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/oauth2 v0.23.0 // indirect

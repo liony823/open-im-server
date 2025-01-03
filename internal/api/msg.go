@@ -17,6 +17,10 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/liony823/open-im-server/v3/pkg/apistruct"
+	"github.com/liony823/open-im-server/v3/pkg/authverify"
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
+	"github.com/liony823/open-im-server/v3/pkg/rpcli"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/protocol/msg"
 	"github.com/liony823/protocol/sdkws"
@@ -30,23 +34,17 @@ import (
 	"github.com/liony823/tools/utils/jsonutil"
 	"github.com/liony823/tools/utils/timeutil"
 	"github.com/mitchellh/mapstructure"
-	"github.com/openimsdk/open-im-server/v3/pkg/apistruct"
-	"github.com/openimsdk/open-im-server/v3/pkg/authverify"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
 )
 
 type MessageApi struct {
-	*rpcclient.Message
-	validate      *validator.Validate
-	userRpcClient *rpcclient.UserRpcClient
+	Client        msg.MsgClient
+	userClient    *rpcli.UserClient
 	imAdminUserID []string
+	validate      *validator.Validate
 }
 
-func NewMessageApi(msgRpcClient *rpcclient.Message, userRpcClient *rpcclient.User,
-	imAdminUserID []string) MessageApi {
-	return MessageApi{Message: msgRpcClient, validate: validator.New(),
-		userRpcClient: rpcclient.NewUserRpcClientByUser(userRpcClient), imAdminUserID: imAdminUserID}
+func NewMessageApi(client msg.MsgClient, userClient *rpcli.UserClient, imAdminUserID []string) MessageApi {
+	return MessageApi{Client: client, userClient: userClient, imAdminUserID: imAdminUserID, validate: validator.New()}
 }
 
 func (*MessageApi) SetOptions(options map[string]bool, value bool) {
@@ -108,51 +106,51 @@ func (m *MessageApi) newUserSendMsgReq(_ *gin.Context, params *apistruct.SendMsg
 }
 
 func (m *MessageApi) GetSeq(c *gin.Context) {
-	a2r.Call(msg.MsgClient.GetMaxSeq, m.Client, c)
+	a2r.Call(c, msg.MsgClient.GetMaxSeq, m.Client)
 }
 
 func (m *MessageApi) PullMsgBySeqs(c *gin.Context) {
-	a2r.Call(msg.MsgClient.PullMessageBySeqs, m.Client, c)
+	a2r.Call(c, msg.MsgClient.PullMessageBySeqs, m.Client)
 }
 
 func (m *MessageApi) RevokeMsg(c *gin.Context) {
-	a2r.Call(msg.MsgClient.RevokeMsg, m.Client, c)
+	a2r.Call(c, msg.MsgClient.RevokeMsg, m.Client)
 }
 
 func (m *MessageApi) MarkMsgsAsRead(c *gin.Context) {
-	a2r.Call(msg.MsgClient.MarkMsgsAsRead, m.Client, c)
+	a2r.Call(c, msg.MsgClient.MarkMsgsAsRead, m.Client)
 }
 
 func (m *MessageApi) MarkConversationAsRead(c *gin.Context) {
-	a2r.Call(msg.MsgClient.MarkConversationAsRead, m.Client, c)
+	a2r.Call(c, msg.MsgClient.MarkConversationAsRead, m.Client)
 }
 
 func (m *MessageApi) GetConversationsHasReadAndMaxSeq(c *gin.Context) {
-	a2r.Call(msg.MsgClient.GetConversationsHasReadAndMaxSeq, m.Client, c)
+	a2r.Call(c, msg.MsgClient.GetConversationsHasReadAndMaxSeq, m.Client)
 }
 
 func (m *MessageApi) SetConversationHasReadSeq(c *gin.Context) {
-	a2r.Call(msg.MsgClient.SetConversationHasReadSeq, m.Client, c)
+	a2r.Call(c, msg.MsgClient.SetConversationHasReadSeq, m.Client)
 }
 
 func (m *MessageApi) ClearConversationsMsg(c *gin.Context) {
-	a2r.Call(msg.MsgClient.ClearConversationsMsg, m.Client, c)
+	a2r.Call(c, msg.MsgClient.ClearConversationsMsg, m.Client)
 }
 
 func (m *MessageApi) UserClearAllMsg(c *gin.Context) {
-	a2r.Call(msg.MsgClient.UserClearAllMsg, m.Client, c)
+	a2r.Call(c, msg.MsgClient.UserClearAllMsg, m.Client)
 }
 
 func (m *MessageApi) DeleteMsgs(c *gin.Context) {
-	a2r.Call(msg.MsgClient.DeleteMsgs, m.Client, c)
+	a2r.Call(c, msg.MsgClient.DeleteMsgs, m.Client)
 }
 
 func (m *MessageApi) DeleteMsgPhysicalBySeq(c *gin.Context) {
-	a2r.Call(msg.MsgClient.DeleteMsgPhysicalBySeq, m.Client, c)
+	a2r.Call(c, msg.MsgClient.DeleteMsgPhysicalBySeq, m.Client)
 }
 
 func (m *MessageApi) DeleteMsgPhysical(c *gin.Context) {
-	a2r.Call(msg.MsgClient.DeleteMsgPhysical, m.Client, c)
+	a2r.Call(c, msg.MsgClient.DeleteMsgPhysical, m.Client)
 }
 
 func (m *MessageApi) getSendMsgReq(c *gin.Context, req apistruct.SendMsg) (sendMsgReq *msg.SendMsgReq, err error) {
@@ -173,14 +171,10 @@ func (m *MessageApi) getSendMsgReq(c *gin.Context, req apistruct.SendMsg) (sendM
 		data = apistruct.AtElem{}
 	case constant.Custom:
 		data = apistruct.CustomElem{}
-	case constant.Quote:
-		data = apistruct.QuoteElem{}
-	case constant.Stream:
-		data = apistruct.StreamMsgElem{}
 	case constant.OANotification:
 		data = apistruct.OANotificationElem{}
 		req.SessionType = constant.NotificationChatType
-		if err = m.userRpcClient.GetNotificationByID(c, req.SendID); err != nil {
+		if err = m.userClient.GetNotificationByID(c, req.SendID); err != nil {
 			return nil, err
 		}
 	default:
@@ -314,10 +308,10 @@ func (m *MessageApi) BatchSendMsg(c *gin.Context) {
 
 	var recvIDs []string
 	if req.IsSendAll {
-		pageNumber := 1
-		showNumber := 500
+		var pageNumber int32 = 1
+		const showNumber = 500
 		for {
-			recvIDsPart, err := m.userRpcClient.GetAllUserIDs(c, int32(pageNumber), int32(showNumber))
+			recvIDsPart, err := m.userClient.GetAllUserIDs(c, pageNumber, showNumber)
 			if err != nil {
 				apiresp.GinError(c, err)
 				return
@@ -355,11 +349,11 @@ func (m *MessageApi) BatchSendMsg(c *gin.Context) {
 }
 
 func (m *MessageApi) CheckMsgIsSendSuccess(c *gin.Context) {
-	a2r.Call(msg.MsgClient.GetSendMsgStatus, m.Client, c)
+	a2r.Call(c, msg.MsgClient.GetSendMsgStatus, m.Client)
 }
 
 func (m *MessageApi) GetUsersOnlineStatus(c *gin.Context) {
-	a2r.Call(msg.MsgClient.GetSendMsgStatus, m.Client, c)
+	a2r.Call(c, msg.MsgClient.GetSendMsgStatus, m.Client)
 }
 
 // @Summary 获取活跃用户
@@ -372,7 +366,7 @@ func (m *MessageApi) GetUsersOnlineStatus(c *gin.Context) {
 // @Success 200 {object}  apiresp.ApiResponse{data=msg.GetActiveUserResp}
 // @Router /statistics/user/active [post]
 func (m *MessageApi) GetActiveUser(c *gin.Context) {
-	a2r.Call(msg.MsgClient.GetActiveUser, m.Client, c)
+	a2r.Call(c, msg.MsgClient.GetActiveUser, m.Client)
 }
 
 // @Summary 获取活跃群
@@ -385,21 +379,21 @@ func (m *MessageApi) GetActiveUser(c *gin.Context) {
 // @Success 200 {object} apiresp.ApiResponse{data=msg.GetActiveGroupResp}
 // @Router /statistics/group/active [post]
 func (m *MessageApi) GetActiveGroup(c *gin.Context) {
-	a2r.Call(msg.MsgClient.GetActiveGroup, m.Client, c)
+	a2r.Call(c, msg.MsgClient.GetActiveGroup, m.Client)
 }
 
 func (m *MessageApi) SearchMsg(c *gin.Context) {
-	a2r.Call(msg.MsgClient.SearchMessage, m.Client, c)
+	a2r.Call(c, msg.MsgClient.SearchMessage, m.Client)
 }
 
 func (m *MessageApi) GetServerTime(c *gin.Context) {
-	a2r.Call(msg.MsgClient.GetServerTime, m.Client, c)
+	a2r.Call(c, msg.MsgClient.GetServerTime, m.Client)
 }
 
 func (m *MessageApi) GetStreamMsg(c *gin.Context) {
-	a2r.Call(msg.MsgClient.GetStreamMsg, m.Client, c)
+	a2r.Call(c, msg.MsgClient.GetServerTime, m.Client)
 }
 
 func (m *MessageApi) AppendStreamMsg(c *gin.Context) {
-	a2r.Call(msg.MsgClient.AppendStreamMsg, m.Client, c)
+	a2r.Call(c, msg.MsgClient.GetServerTime, m.Client)
 }

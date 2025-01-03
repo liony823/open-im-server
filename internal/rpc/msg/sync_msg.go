@@ -17,15 +17,15 @@ package msg
 import (
 	"context"
 
+	"github.com/liony823/open-im-server/v3/pkg/authverify"
+	"github.com/liony823/open-im-server/v3/pkg/msgprocessor"
+	"github.com/liony823/open-im-server/v3/pkg/util/conversationutil"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/protocol/msg"
 	"github.com/liony823/protocol/sdkws"
 	"github.com/liony823/tools/log"
 	"github.com/liony823/tools/utils/datautil"
 	"github.com/liony823/tools/utils/timeutil"
-	"github.com/openimsdk/open-im-server/v3/pkg/authverify"
-	"github.com/openimsdk/open-im-server/v3/pkg/msgprocessor"
-	"github.com/openimsdk/open-im-server/v3/pkg/util/conversationutil"
 )
 
 func (m *msgServer) PullMessageBySeqs(ctx context.Context, req *sdkws.PullMessageBySeqsReq) (*sdkws.PullMessageBySeqsResp, error) {
@@ -97,8 +97,6 @@ func (m *msgServer) GetSeqMessage(ctx context.Context, req *msg.GetSeqMessageReq
 			return nil, err
 		}
 		var pullMsgs *sdkws.PullMsgs
-		pullMsgs.IsEnd = isEnd
-		pullMsgs.EndSeq = endSeq
 		if ok := false; conversationutil.IsNotificationConversationID(conv.ConversationID) {
 			pullMsgs, ok = resp.NotificationMsgs[conv.ConversationID]
 			if !ok {
@@ -113,6 +111,8 @@ func (m *msgServer) GetSeqMessage(ctx context.Context, req *msg.GetSeqMessageReq
 			}
 		}
 		pullMsgs.Msgs = append(pullMsgs.Msgs, msgs...)
+		pullMsgs.IsEnd = isEnd
+		pullMsgs.EndSeq = endSeq
 	}
 	return resp, nil
 }
@@ -244,4 +244,12 @@ func (m *msgServer) SearchMessage(ctx context.Context, req *msg.SearchMessageReq
 
 func (m *msgServer) GetServerTime(ctx context.Context, _ *msg.GetServerTimeReq) (*msg.GetServerTimeResp, error) {
 	return &msg.GetServerTimeResp{ServerTime: timeutil.GetCurrentTimestampByMill()}, nil
+}
+
+func (m *msgServer) GetLastMessage(ctx context.Context, req *msg.GetLastMessageReq) (*msg.GetLastMessageResp, error) {
+	msgs, err := m.MsgDatabase.GetLastMessage(ctx, req.ConversationIDs, req.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return &msg.GetLastMessageResp{Msgs: msgs}, nil
 }

@@ -29,33 +29,41 @@ import (
 	"github.com/liony823/tools/discovery/etcd"
 	"github.com/liony823/tools/utils/datautil"
 	"github.com/liony823/tools/utils/jsonutil"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 	"google.golang.org/grpc/status"
 
 	"github.com/liony823/tools/utils/runtimeenv"
 
+	conf "github.com/liony823/open-im-server/v3/pkg/common/config"
+	kdisc "github.com/liony823/open-im-server/v3/pkg/common/discovery"
+	disetcd "github.com/liony823/open-im-server/v3/pkg/common/discovery/etcd"
+	"github.com/liony823/open-im-server/v3/pkg/common/prommetrics"
 	"github.com/liony823/tools/discovery"
 	"github.com/liony823/tools/errs"
 	"github.com/liony823/tools/log"
 	"github.com/liony823/tools/mw"
 	"github.com/liony823/tools/utils/network"
-	kdisc "github.com/openimsdk/open-im-server/v3/pkg/common/discoveryregister"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/prommetrics"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 // Start rpc server.
-func Start[T any](ctx context.Context, discovery *config.Discovery, prometheusConfig *config.Prometheus, listenIP,
-	registerIP string, autoSetPorts bool, rpcPorts []int, index int, rpcRegisterName string, share *config.Share, config T, rpcFn func(ctx context.Context,
-	config T, client discovery.SvcDiscoveryRegistry, server *grpc.Server) error, options ...grpc.ServerOption) error {
+func Start[T any](ctx context.Context, discovery *conf.Discovery, prometheusConfig *conf.Prometheus, listenIP,
+	registerIP string, autoSetPorts bool, rpcPorts []int, index int, rpcRegisterName string, notification *conf.Notification, config T,
+	watchConfigNames []string,
+	rpcFn func(ctx context.Context, config T, client discovery.SvcDiscoveryRegistry, server *grpc.Server) error,
+	options ...grpc.ServerOption) error {
 
+	watchConfigNames = append(watchConfigNames, conf.LogConfigFileName)
 	var (
 		rpcTcpAddr     string
 		netDone        = make(chan struct{}, 2)
 		netErr         error
 		prometheusPort int
 	)
+
+	if notification != nil {
+		conf.InitNotification(notification)
+	}
 
 	registerIP, err := network.GetRpcRegisterIP(registerIP)
 	if err != nil {
@@ -84,7 +92,7 @@ func Start[T any](ctx context.Context, discovery *config.Discovery, prometheusCo
 		return listener, port, nil
 	}
 
-	if autoSetPorts && discovery.Enable != kdisc.Etcd {
+	if autoSetPorts && discovery.Enable != conf.ETCD {
 		return errs.New("only etcd support autoSetPorts", "rpcRegisterName", rpcRegisterName).Wrap()
 	}
 	client, err := kdisc.NewDiscoveryRegister(discovery, runTimeEnv)
@@ -180,11 +188,16 @@ func Start[T any](ctx context.Context, discovery *config.Discovery, prometheusCo
 
 	go func() {
 		err := srv.Serve(listener)
-		if err != nil {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			netErr = errs.WrapMsg(err, "rpc start err: ", rpcTcpAddr)
 			netDone <- struct{}{}
 		}
 	}()
+
+	if discovery.Enable == conf.ETCD {
+		cm := disetcd.NewConfigManager(client.(*etcd.SvcDiscoveryRegistryImpl).GetClient(), watchConfigNames)
+		cm.Watch(ctx)
+	}
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM)

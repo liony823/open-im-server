@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/openimsdk/open-im-server/v3/tools/seq/internal"
 	"time"
+
+	"github.com/liony823/open-im-server/v3/tools/seq/internal"
 )
 
 func main() {

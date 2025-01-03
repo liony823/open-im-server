@@ -15,8 +15,8 @@
 package main
 
 import (
+	"github.com/liony823/open-im-server/v3/pkg/common/cmd"
 	"github.com/liony823/tools/system/program"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/cmd"
 )
 
 func main() {

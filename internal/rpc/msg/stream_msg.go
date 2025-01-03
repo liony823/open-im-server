@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/model"
+	"github.com/liony823/open-im-server/v3/pkg/msgprocessor"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/protocol/msg"
 	"github.com/liony823/protocol/sdkws"
 	"github.com/liony823/tools/errs"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
-	"github.com/openimsdk/open-im-server/v3/pkg/msgprocessor"
 )
 
 const StreamDeadlineTime = time.Second * 60 * 10
@@ -72,7 +72,7 @@ func (m *msgServer) AppendStreamMsg(ctx context.Context, req *msg.AppendStreamMs
 	if err := m.StreamMsgDatabase.AppendStreamMsg(ctx, req.ClientMsgID, int(req.StartIndex), req.Packets, req.End, deadlineTime); err != nil {
 		return nil, err
 	}
-	conversation, err := m.Conversation.GetConversation(ctx, res.UserID, res.ConversationID)
+	conversation, err := m.conversationClient.GetConversation(ctx, res.ConversationID, res.UserID)
 	if err != nil {
 		return nil, err
 	}

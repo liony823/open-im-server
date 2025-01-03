@@ -18,11 +18,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
+	"github.com/liony823/open-im-server/v3/pkg/rpccache"
 	"github.com/liony823/tools/db/redisutil"
 	"github.com/liony823/tools/utils/datautil"
 	"github.com/liony823/tools/utils/runtimeenv"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/open-im-server/v3/pkg/rpccache"
 
 	"github.com/liony823/tools/log"
 )
@@ -62,8 +62,9 @@ func Start(ctx context.Context, index int, conf *Config) error {
 	)
 
 	hubServer := NewServer(longServer, conf, func(srv *Server) error {
-		longServer.online, _ = rpccache.NewOnlineCache(srv.userRcp, nil, rdb, false, longServer.subscriberUserOnlineStatusChanges)
-		return nil
+		var err error
+		longServer.online, err = rpccache.NewOnlineCache(srv.userClient, nil, rdb, false, longServer.subscriberUserOnlineStatusChanges)
+		return err
 	})
 
 	go longServer.ChangeOnlineStatus(4)

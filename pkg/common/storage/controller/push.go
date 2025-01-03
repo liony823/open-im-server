@@ -17,12 +17,12 @@ package controller
 import (
 	"context"
 
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/cache"
 	"github.com/liony823/protocol/push"
 	"github.com/liony823/protocol/sdkws"
 	"github.com/liony823/tools/log"
 	"github.com/liony823/tools/mq/kafka"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache"
 )
 
 type PushDatabase interface {

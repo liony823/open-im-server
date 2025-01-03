@@ -3,13 +3,14 @@ package push
 import (
 	"context"
 
+	"github.com/liony823/open-im-server/v3/internal/push/offlinepush"
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/cache/redis"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/controller"
 	pbpush "github.com/liony823/protocol/push"
 	"github.com/liony823/tools/db/redisutil"
 	"github.com/liony823/tools/discovery"
-	"github.com/openimsdk/open-im-server/v3/internal/push/offlinepush"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache/redis"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/controller"
+	"github.com/liony823/tools/utils/runtimeenv"
 	"google.golang.org/grpc"
 )
 
@@ -32,11 +33,8 @@ type Config struct {
 	LocalCacheConfig   config.LocalCache
 	Discovery          config.Discovery
 	FcmConfigPath      string
-}
 
-func (p pushServer) PushMsg(ctx context.Context, req *pbpush.PushMsgReq) (*pbpush.PushMsgResp, error) {
-	//todo reserved Interface
-	return nil, nil
+	runTimeEnv string
 }
 
 func (p pushServer) DelUserPushToken(ctx context.Context,
@@ -48,6 +46,8 @@ func (p pushServer) DelUserPushToken(ctx context.Context,
 }
 
 func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryRegistry, server *grpc.Server) error {
+	config.runTimeEnv = runtimeenv.PrintRuntimeEnvironment()
+
 	rdb, err := redisutil.NewRedisClient(ctx, config.RedisConfig.Build())
 	if err != nil {
 		return err
@@ -60,7 +60,7 @@ func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryReg
 
 	database := controller.NewPushDatabase(cacheModel, &config.KafkaConfig)
 
-	consumer, err := NewConsumerHandler(config, database, offlinePusher, rdb, client)
+	consumer, err := NewConsumerHandler(ctx, config, database, offlinePusher, rdb, client)
 	if err != nil {
 		return err
 	}

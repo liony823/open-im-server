@@ -18,6 +18,11 @@ import (
 	"context"
 	"sync/atomic"
 
+	"github.com/liony823/open-im-server/v3/pkg/rpcli"
+
+	"github.com/liony823/open-im-server/v3/pkg/authverify"
+	"github.com/liony823/open-im-server/v3/pkg/common/servererrs"
+	"github.com/liony823/open-im-server/v3/pkg/common/startrpc"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/protocol/msggateway"
 	"github.com/liony823/protocol/sdkws"
@@ -27,17 +32,19 @@ import (
 	"github.com/liony823/tools/mcontext"
 	"github.com/liony823/tools/mq/memamq"
 	"github.com/liony823/tools/utils/datautil"
-	"github.com/openimsdk/open-im-server/v3/pkg/authverify"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/startrpc"
-	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
 	"google.golang.org/grpc"
 )
 
 func (s *Server) InitServer(ctx context.Context, config *Config, disCov discovery.SvcDiscoveryRegistry, server *grpc.Server) error {
-	s.LongConnServer.SetDiscoveryRegistry(disCov, config)
+	userConn, err := disCov.GetConn(ctx, config.Discovery.RpcService.User)
+	if err != nil {
+		return err
+	}
+	s.userClient = rpcli.NewUserClient(userConn)
+	if err := s.LongConnServer.SetDiscoveryRegistry(ctx, disCov, config); err != nil {
+		return err
+	}
 	msggateway.RegisterMsgGatewayServer(server, s)
-	s.userRcp = rpcclient.NewUserRpcClient(disCov, config.Discovery.RpcService.User, config.Share.IMAdminUserID)
 	if s.ready != nil {
 		return s.ready(s)
 	}
@@ -49,8 +56,15 @@ func (s *Server) Start(ctx context.Context, index int, conf *Config) error {
 		conf.MsgGateway.RPC.RegisterIP,
 		conf.MsgGateway.RPC.AutoSetPorts, conf.MsgGateway.RPC.Ports, index,
 		conf.Discovery.RpcService.MessageGateway,
-		&conf.Share,
+		nil,
 		conf,
+		[]string{
+			conf.Share.GetConfigFileName(),
+			conf.Discovery.GetConfigFileName(),
+			conf.MsgGateway.GetConfigFileName(),
+			conf.WebhooksConfig.GetConfigFileName(),
+			conf.RedisConfig.GetConfigFileName(),
+		},
 		s.InitServer,
 	)
 }
@@ -62,8 +76,8 @@ type Server struct {
 	config         *Config
 	pushTerminal   map[int]struct{}
 	ready          func(srv *Server) error
-	userRcp        rpcclient.UserRpcClient
 	queue          *memamq.MemoryQueue
+	userClient     *rpcli.UserClient
 }
 
 func (s *Server) SetLongConnServer(LongConnServer LongConnServer) {
@@ -81,10 +95,6 @@ func NewServer(longConnServer LongConnServer, conf *Config, ready func(srv *Serv
 	s.pushTerminal[constant.IOSPlatformID] = struct{}{}
 	s.pushTerminal[constant.AndroidPlatformID] = struct{}{}
 	return s
-}
-
-func (s *Server) OnlinePushMsg(context context.Context, req *msggateway.OnlinePushMsgReq) (*msggateway.OnlinePushMsgResp, error) {
-	panic("implement me")
 }
 
 func (s *Server) GetUsersOnlineStatus(ctx context.Context, req *msggateway.GetUsersOnlineStatusReq) (*msggateway.GetUsersOnlineStatusResp, error) {
@@ -118,11 +128,6 @@ func (s *Server) GetUsersOnlineStatus(ctx context.Context, req *msggateway.GetUs
 		}
 	}
 	return &resp, nil
-}
-
-func (s *Server) OnlineBatchPushOneMsg(ctx context.Context, req *msggateway.OnlineBatchPushOneMsgReq) (*msggateway.OnlineBatchPushOneMsgResp, error) {
-	// todo implement
-	return nil, nil
 }
 
 func (s *Server) pushToUser(ctx context.Context, userID string, msgData *sdkws.MsgData) *msggateway.SingleMsgToUserResults {

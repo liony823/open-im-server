@@ -18,12 +18,18 @@ import (
 	"context"
 	"errors"
 
+	"github.com/liony823/open-im-server/v3/pkg/rpcli"
+
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
+	redis2 "github.com/liony823/open-im-server/v3/pkg/common/storage/cache/redis"
 	"github.com/liony823/tools/db/redisutil"
 	"github.com/liony823/tools/utils/datautil"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	redis2 "github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache/redis"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/liony823/open-im-server/v3/pkg/authverify"
+	"github.com/liony823/open-im-server/v3/pkg/common/prommetrics"
+	"github.com/liony823/open-im-server/v3/pkg/common/servererrs"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/controller"
 	pbauth "github.com/liony823/protocol/auth"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/protocol/msggateway"
@@ -31,20 +37,15 @@ import (
 	"github.com/liony823/tools/errs"
 	"github.com/liony823/tools/log"
 	"github.com/liony823/tools/tokenverify"
-	"github.com/openimsdk/open-im-server/v3/pkg/authverify"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/prommetrics"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/controller"
-	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
 	"google.golang.org/grpc"
 )
 
 type authServer struct {
 	pbauth.UnimplementedAuthServer
 	authDatabase   controller.AuthDatabase
-	userRpcClient  *rpcclient.UserRpcClient
 	RegisterCenter discovery.SvcDiscoveryRegistry
 	config         *Config
+	userClient     *rpcli.UserClient
 }
 
 type Config struct {
@@ -59,9 +60,11 @@ func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryReg
 	if err != nil {
 		return err
 	}
-	userRpcClient := rpcclient.NewUserRpcClient(client, config.Discovery.RpcService.User, config.Share.IMAdminUserID)
+	userConn, err := client.GetConn(ctx, config.Discovery.RpcService.User)
+	if err != nil {
+		return err
+	}
 	pbauth.RegisterAuthServer(server, &authServer{
-		userRpcClient:  &userRpcClient,
 		RegisterCenter: client,
 		authDatabase: controller.NewAuthDatabase(
 			redis2.NewTokenCacheModel(rdb, config.RpcConfig.TokenPolicy.Expire),
@@ -70,7 +73,8 @@ func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryReg
 			config.Share.MultiLogin,
 			config.Share.IMAdminUserID,
 		),
-		config: config,
+		config:     config,
+		userClient: rpcli.NewUserClient(userConn),
 	})
 	return nil
 }
@@ -86,7 +90,7 @@ func (s *authServer) GetAdminToken(ctx context.Context, req *pbauth.GetAdminToke
 
 	}
 
-	if _, err := s.userRpcClient.GetUserInfo(ctx, req.UserID); err != nil {
+	if err := s.userClient.CheckUser(ctx, []string{req.UserID}); err != nil {
 		return nil, err
 	}
 
@@ -115,7 +119,7 @@ func (s *authServer) GetUserToken(ctx context.Context, req *pbauth.GetUserTokenR
 	if authverify.IsManagerUserID(req.UserID, s.config.Share.IMAdminUserID) {
 		return nil, errs.ErrNoPermission.WrapMsg("don't get Admin token")
 	}
-	if _, err := s.userRpcClient.GetUserInfo(ctx, req.UserID); err != nil {
+	if err := s.userClient.CheckUser(ctx, []string{req.UserID}); err != nil {
 		return nil, err
 	}
 	token, err := s.authDatabase.CreateToken(ctx, req.UserID, int(req.PlatformID))
@@ -130,7 +134,7 @@ func (s *authServer) GetUserToken(ctx context.Context, req *pbauth.GetUserTokenR
 func (s *authServer) parseToken(ctx context.Context, tokensString string) (claims *tokenverify.Claims, err error) {
 	claims, err = tokenverify.GetClaimFromToken(tokensString, authverify.Secret(s.config.Share.Secret))
 	if err != nil {
-		return nil, errs.Wrap(err)
+		return nil, err
 	}
 	isAdmin := authverify.IsManagerUserID(claims.UserID, s.config.Share.IMAdminUserID)
 	if isAdmin {
@@ -156,10 +160,7 @@ func (s *authServer) parseToken(ctx context.Context, tokensString string) (claim
 	return nil, servererrs.ErrTokenNotExist.Wrap()
 }
 
-func (s *authServer) ParseToken(
-	ctx context.Context,
-	req *pbauth.ParseTokenReq,
-) (resp *pbauth.ParseTokenResp, err error) {
+func (s *authServer) ParseToken(ctx context.Context, req *pbauth.ParseTokenReq) (resp *pbauth.ParseTokenResp, err error) {
 	resp = &pbauth.ParseTokenResp{}
 	claims, err := s.parseToken(ctx, req.Token)
 	if err != nil {

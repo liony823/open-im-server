@@ -15,8 +15,8 @@
 package body
 
 import (
-	"github.com/openimsdk/open-im-server/v3/internal/push/offlinepush/options"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
+	"github.com/liony823/open-im-server/v3/internal/push/offlinepush/options"
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
 )
 
 type Notification struct {

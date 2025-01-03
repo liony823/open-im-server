@@ -19,13 +19,15 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/cache/redis"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/database/mgo"
+	"github.com/liony823/open-im-server/v3/pkg/localcache"
+	"github.com/liony823/open-im-server/v3/pkg/rpcli"
 	"github.com/liony823/tools/s3/aws"
 	"github.com/liony823/tools/s3/kodo"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache/redis"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/database/mgo"
-	"github.com/openimsdk/open-im-server/v3/pkg/localcache"
 
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/controller"
 	"github.com/liony823/protocol/third"
 	"github.com/liony823/tools/db/mongoutil"
 	"github.com/liony823/tools/db/redisutil"
@@ -34,8 +36,6 @@ import (
 	"github.com/liony823/tools/s3/cos"
 	"github.com/liony823/tools/s3/minio"
 	"github.com/liony823/tools/s3/oss"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/controller"
-	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
 	"google.golang.org/grpc"
 )
 
@@ -43,10 +43,10 @@ type thirdServer struct {
 	third.UnimplementedThirdServer
 	thirdDatabase controller.ThirdDatabase
 	s3dataBase    controller.S3Database
-	userRpcClient rpcclient.UserRpcClient
 	defaultExpire time.Duration
 	config        *Config
-	minio         *minio.Minio
+	s3            s3.Interface
+	userClient    *rpcli.UserClient
 }
 
 type Config struct {
@@ -81,13 +81,11 @@ func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryReg
 	// Select the oss method according to the profile policy
 	enable := config.RpcConfig.Object.Enable
 	var (
-		o        s3.Interface
-		minioCli *minio.Minio
+		o s3.Interface
 	)
 	switch enable {
 	case "minio":
-		minioCli, err = minio.NewMinio(ctx, redis.NewMinioCache(rdb), *config.MinioConfig.Build())
-		o = minioCli
+		o, err = minio.NewMinio(ctx, redis.NewMinioCache(rdb), *config.MinioConfig.Build())
 	case "cos":
 		o, err = cos.NewCos(*config.RpcConfig.Object.Cos.Build())
 	case "oss":
@@ -102,20 +100,20 @@ func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryReg
 	if err != nil {
 		return err
 	}
+	userConn, err := client.GetConn(ctx, config.Discovery.RpcService.User)
+	if err != nil {
+		return err
+	}
 	localcache.InitLocalCache(&config.LocalCacheConfig)
 	third.RegisterThirdServer(server, &thirdServer{
 		thirdDatabase: controller.NewThirdDatabase(redis.NewThirdCache(rdb), logdb),
-		userRpcClient: rpcclient.NewUserRpcClient(client, config.Discovery.RpcService.User, config.Share.IMAdminUserID),
 		s3dataBase:    controller.NewS3Database(rdb, o, s3db),
 		defaultExpire: time.Hour * 24 * 7,
 		config:        config,
-		minio:         minioCli,
+		s3:            o,
+		userClient:    rpcli.NewUserClient(userConn),
 	})
 	return nil
-}
-
-func (t *thirdServer) getMinioImageThumbnailKey(ctx context.Context, name string) (string, error) {
-	return t.minio.GetImageThumbnailKey(ctx, name)
 }
 
 func (t *thirdServer) FcmUpdateToken(ctx context.Context, req *third.FcmUpdateTokenReq) (resp *third.FcmUpdateTokenResp, err error) {

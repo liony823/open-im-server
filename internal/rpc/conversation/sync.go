@@ -3,10 +3,10 @@ package conversation
 import (
 	"context"
 
+	"github.com/liony823/open-im-server/v3/internal/rpc/incrversion"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/model"
+	"github.com/liony823/open-im-server/v3/pkg/util/hashutil"
 	"github.com/liony823/protocol/conversation"
-	"github.com/openimsdk/open-im-server/v3/internal/rpc/incrversion"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
-	"github.com/openimsdk/open-im-server/v3/pkg/util/hashutil"
 )
 
 func (c *conversationServer) GetFullOwnerConversationIDs(ctx context.Context, req *conversation.GetFullOwnerConversationIDsReq) (*conversation.GetFullOwnerConversationIDsResp, error) {

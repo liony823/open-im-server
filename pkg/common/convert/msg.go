@@ -15,9 +15,9 @@
 package convert
 
 import (
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/model"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/protocol/sdkws"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
 )
 
 func MsgPb2DB(msg *sdkws.MsgData) *model.MsgDataModel {

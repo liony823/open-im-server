@@ -16,50 +16,15 @@ package cachekey
 
 import (
 	"strconv"
-
-	"github.com/liony823/protocol/constant"
 )
 
 const (
-	messageCache         = "MESSAGE_CACHE:"
-	messageDelUserList   = "MESSAGE_DEL_USER_LIST:"
-	userDelMessagesList  = "USER_DEL_MESSAGES_LIST:"
-	sendMsgFailedFlag    = "SEND_MSG_FAILED_FLAG:"
-	exTypeKeyLocker      = "EX_LOCK:"
-	reactionExSingle     = "EX_SINGLE_"
-	reactionWriteGroup   = "EX_GROUP_"
-	reactionReadGroup    = "EX_SUPER_GROUP_"
-	reactionNotification = "EX_NOTIFICATION_"
+	sendMsgFailedFlag = "SEND_MSG_FAILED_FLAG:"
+	messageCache      = "MSG_CACHE:"
 )
 
-func GetMessageCacheKey(conversationID string, seq int64) string {
-	return messageCache + conversationID + "_" + strconv.Itoa(int(seq))
-}
-
-func GetMessageDelUserListKey(conversationID string, seq int64) string {
-	return messageDelUserList + conversationID + ":" + strconv.Itoa(int(seq))
-}
-
-func GetUserDelListKey(conversationID, userID string) string {
-	return userDelMessagesList + conversationID + ":" + userID
-}
-
-func GetMessageReactionExKey(clientMsgID string, sessionType int32) string {
-	switch sessionType {
-	case constant.SingleChatType:
-		return reactionExSingle + clientMsgID
-	case constant.WriteGroupChatType:
-		return reactionWriteGroup + clientMsgID
-	case constant.ReadGroupChatType:
-		return reactionReadGroup + clientMsgID
-	case constant.NotificationChatType:
-		return reactionNotification + clientMsgID
-	}
-
-	return ""
-}
-func GetLockMessageTypeKey(clientMsgID string, TypeKey string) string {
-	return exTypeKeyLocker + clientMsgID + "_" + TypeKey
+func GetMsgCacheKey(conversationID string, seq int64) string {
+	return messageCache + conversationID + ":" + strconv.Itoa(int(seq))
 }
 
 func GetSendMsgKey(id string) string {

@@ -4,6 +4,9 @@ import (
 	"context"
 
 	"github.com/IBM/sarama"
+	"github.com/liony823/open-im-server/v3/internal/push/offlinepush"
+	"github.com/liony823/open-im-server/v3/internal/push/offlinepush/options"
+	"github.com/liony823/open-im-server/v3/pkg/common/prommetrics"
 	"github.com/liony823/protocol/constant"
 	pbpush "github.com/liony823/protocol/push"
 	"github.com/liony823/protocol/sdkws"
@@ -11,9 +14,6 @@ import (
 	"github.com/liony823/tools/log"
 	"github.com/liony823/tools/mq/kafka"
 	"github.com/liony823/tools/utils/jsonutil"
-	"github.com/openimsdk/open-im-server/v3/internal/push/offlinepush"
-	"github.com/openimsdk/open-im-server/v3/internal/push/offlinepush/options"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/prommetrics"
 	"google.golang.org/protobuf/proto"
 )
 

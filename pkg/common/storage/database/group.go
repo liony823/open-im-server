@@ -18,8 +18,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/model"
 	"github.com/liony823/tools/db/pagination"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
 )
 
 type Group interface {

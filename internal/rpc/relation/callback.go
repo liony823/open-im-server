@@ -17,11 +17,11 @@ package relation
 import (
 	"context"
 
-	"github.com/openimsdk/open-im-server/v3/pkg/common/webhook"
+	"github.com/liony823/open-im-server/v3/pkg/common/webhook"
 
+	cbapi "github.com/liony823/open-im-server/v3/pkg/callbackstruct"
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
 	"github.com/liony823/protocol/relation"
-	cbapi "github.com/openimsdk/open-im-server/v3/pkg/callbackstruct"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 )
 
 func (s *friendServer) webhookAfterDeleteFriend(ctx context.Context, after *config.AfterConfig, req *relation.DeleteFriendReq) {

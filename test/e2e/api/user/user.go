@@ -21,8 +21,8 @@ import (
 	"io"
 	"net/http"
 
-	gettoken "github.com/openimsdk/open-im-server/v3/test/e2e/api/token"
-	"github.com/openimsdk/open-im-server/v3/test/e2e/framework/config"
+	gettoken "github.com/liony823/open-im-server/v3/test/e2e/api/token"
+	"github.com/liony823/open-im-server/v3/test/e2e/framework/config"
 )
 
 // ForceLogoutRequest represents a request to force a user logout.

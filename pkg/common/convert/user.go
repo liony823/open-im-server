@@ -17,8 +17,8 @@ package convert
 import (
 	"time"
 
+	relationtb "github.com/liony823/open-im-server/v3/pkg/common/storage/model"
 	"github.com/liony823/tools/utils/datautil"
-	relationtb "github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
 
 	"github.com/liony823/protocol/sdkws"
 )

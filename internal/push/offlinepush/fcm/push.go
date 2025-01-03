@@ -20,15 +20,15 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/liony823/open-im-server/v3/internal/push/offlinepush/options"
 	"github.com/liony823/tools/utils/httputil"
-	"github.com/openimsdk/open-im-server/v3/internal/push/offlinepush/options"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/cache"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/tools/errs"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache"
 	"github.com/redis/go-redis/v9"
 	"google.golang.org/api/option"
 )

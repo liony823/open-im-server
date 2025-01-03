@@ -17,18 +17,23 @@ package conversation
 import (
 	"context"
 
+	"github.com/liony823/open-im-server/v3/pkg/rpcli"
+	"github.com/liony823/protocol/msg"
+
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
+	rpcclient "github.com/liony823/open-im-server/v3/pkg/notification"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/protocol/sdkws"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
 )
 
 type ConversationNotificationSender struct {
 	*rpcclient.NotificationSender
 }
 
-func NewConversationNotificationSender(conf *config.Notification, msgRpcClient *rpcclient.MessageRpcClient) *ConversationNotificationSender {
-	return &ConversationNotificationSender{rpcclient.NewNotificationSender(conf, rpcclient.WithRpcClient(msgRpcClient))}
+func NewConversationNotificationSender(conf *config.Notification, msgClient *rpcli.MsgClient) *ConversationNotificationSender {
+	return &ConversationNotificationSender{rpcclient.NewNotificationSender(conf, rpcclient.WithRpcClient(func(ctx context.Context, req *msg.SendMsgReq) (*msg.SendMsgResp, error) {
+		return msgClient.SendMsg(ctx, req)
+	}))}
 }
 
 // SetPrivate invote.

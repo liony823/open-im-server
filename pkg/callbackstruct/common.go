@@ -15,8 +15,8 @@
 package callbackstruct
 
 import (
+	"github.com/liony823/open-im-server/v3/pkg/common/servererrs"
 	"github.com/liony823/tools/errs"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
 )
 
 const (

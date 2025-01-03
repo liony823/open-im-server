@@ -17,9 +17,9 @@ package msg
 import (
 	"context"
 
+	rpcclient "github.com/liony823/open-im-server/v3/pkg/notification"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/protocol/sdkws"
-	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
 )
 
 type MsgNotificationSender struct {

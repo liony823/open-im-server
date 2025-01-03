@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/database/mgo"
 	"github.com/liony823/tools/db/mongoutil"
 	"github.com/liony823/tools/db/redisutil"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/database/mgo"
 )
 
 func TestName(t *testing.T) {

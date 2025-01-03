@@ -20,10 +20,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/liony823/open-im-server/v3/pkg/authverify"
 	"github.com/liony823/protocol/third"
 	"github.com/liony823/tools/errs"
 	"github.com/liony823/tools/mcontext"
-	"github.com/openimsdk/open-im-server/v3/pkg/authverify"
 )
 
 func toPbMapArray(m map[string][]string) []*third.KeyValues {

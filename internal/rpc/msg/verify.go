@@ -20,10 +20,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/liony823/open-im-server/v3/pkg/common/servererrs"
 	"github.com/liony823/tools/utils/datautil"
 	"github.com/liony823/tools/utils/encrypt"
 	"github.com/liony823/tools/utils/timeutil"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
 
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/protocol/msg"

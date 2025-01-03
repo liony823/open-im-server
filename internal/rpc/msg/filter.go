@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
 	pbchat "github.com/liony823/protocol/msg"
 	"github.com/liony823/tools/utils/datautil"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 )
 
 const (

@@ -18,12 +18,12 @@ import (
 	"context"
 
 	"github.com/IBM/sarama"
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
+	"github.com/liony823/open-im-server/v3/pkg/common/prommetrics"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/controller"
 	pbmsg "github.com/liony823/protocol/msg"
 	"github.com/liony823/tools/log"
 	"github.com/liony823/tools/mq/kafka"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/prommetrics"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/controller"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -77,27 +77,13 @@ func (mc *OnlineHistoryMongoConsumerHandler) handleChatWs2Mongo(ctx context.Cont
 	for _, msg := range msgFromMQ.MsgData {
 		seqs = append(seqs, msg.Seq)
 	}
-	err = mc.msgTransferDatabase.DeleteMessagesFromCache(ctx, msgFromMQ.ConversationID, seqs)
-	if err != nil {
-		log.ZError(
-			ctx,
-			"remove cache msg from redis err",
-			err,
-			"msg",
-			msgFromMQ.MsgData,
-			"conversationID",
-			msgFromMQ.ConversationID,
-		)
-	}
 }
 
-func (*OnlineHistoryMongoConsumerHandler) Setup(_ sarama.ConsumerGroupSession) error   { return nil }
+func (*OnlineHistoryMongoConsumerHandler) Setup(_ sarama.ConsumerGroupSession) error { return nil }
+
 func (*OnlineHistoryMongoConsumerHandler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
 
-func (mc *OnlineHistoryMongoConsumerHandler) ConsumeClaim(
-	sess sarama.ConsumerGroupSession,
-	claim sarama.ConsumerGroupClaim,
-) error { // an instance in the consumer group
+func (mc *OnlineHistoryMongoConsumerHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error { // an instance in the consumer group
 	log.ZDebug(context.Background(), "online new session msg come", "highWaterMarkOffset",
 		claim.HighWaterMarkOffset(), "topic", claim.Topic(), "partition", claim.Partition())
 	for msg := range claim.Messages() {

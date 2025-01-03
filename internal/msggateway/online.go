@@ -11,11 +11,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/cache/cachekey"
 	pbuser "github.com/liony823/protocol/user"
 	"github.com/liony823/tools/log"
 	"github.com/liony823/tools/mcontext"
 	"github.com/liony823/tools/utils/datautil"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache/cachekey"
 )
 
 func (ws *WsServer) ChangeOnlineStatus(concurrent int) {
@@ -88,7 +88,7 @@ func (ws *WsServer) ChangeOnlineStatus(concurrent int) {
 		opIdCtx := mcontext.SetOperationID(context.Background(), operationIDPrefix+strconv.FormatInt(count.Add(1), 10))
 		ctx, cancel := context.WithTimeout(opIdCtx, time.Second*5)
 		defer cancel()
-		if _, err := ws.userClient.Client.SetUserOnlineStatus(ctx, req); err != nil {
+		if err := ws.userClient.SetUserOnlineStatus(ctx, req); err != nil {
 			log.ZError(ctx, "update user online status", err)
 		}
 		for _, ss := range req.Status {

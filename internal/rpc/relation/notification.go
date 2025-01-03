@@ -17,26 +17,28 @@ package relation
 import (
 	"context"
 
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/database"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/versionctx"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/database"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/versionctx"
+	"github.com/liony823/open-im-server/v3/pkg/notification/common_user"
+	"github.com/liony823/open-im-server/v3/pkg/rpcli"
 
-	relationtb "github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
+	relationtb "github.com/liony823/open-im-server/v3/pkg/common/storage/model"
 
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
+	"github.com/liony823/open-im-server/v3/pkg/common/convert"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/controller"
+	rpcclient "github.com/liony823/open-im-server/v3/pkg/notification"
 	"github.com/liony823/protocol/constant"
+	"github.com/liony823/protocol/msg"
 	"github.com/liony823/protocol/relation"
 	"github.com/liony823/protocol/sdkws"
 	"github.com/liony823/tools/mcontext"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/convert"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/controller"
-	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
-	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient/notification"
 )
 
 type FriendNotificationSender struct {
 	*rpcclient.NotificationSender
 	// Target not found err
-	getUsersInfo func(ctx context.Context, userIDs []string) ([]notification.CommonUser, error)
+	getUsersInfo func(ctx context.Context, userIDs []string) ([]common_user.CommonUser, error)
 	// db controller
 	db controller.FriendDatabase
 }
@@ -53,7 +55,7 @@ func WithDBFunc(
 	fn func(ctx context.Context, userIDs []string) (users []*relationtb.User, err error),
 ) friendNotificationSenderOptions {
 	return func(s *FriendNotificationSender) {
-		f := func(ctx context.Context, userIDs []string) (result []notification.CommonUser, err error) {
+		f := func(ctx context.Context, userIDs []string) (result []common_user.CommonUser, err error) {
 			users, err := fn(ctx, userIDs)
 			if err != nil {
 				return nil, err
@@ -71,7 +73,7 @@ func WithRpcFunc(
 	fn func(ctx context.Context, userIDs []string) ([]*sdkws.UserInfo, error),
 ) friendNotificationSenderOptions {
 	return func(s *FriendNotificationSender) {
-		f := func(ctx context.Context, userIDs []string) (result []notification.CommonUser, err error) {
+		f := func(ctx context.Context, userIDs []string) (result []common_user.CommonUser, err error) {
 			users, err := fn(ctx, userIDs)
 			if err != nil {
 				return nil, err
@@ -85,13 +87,11 @@ func WithRpcFunc(
 	}
 }
 
-func NewFriendNotificationSender(
-	conf *config.Notification,
-	msgRpcClient *rpcclient.MessageRpcClient,
-	opts ...friendNotificationSenderOptions,
-) *FriendNotificationSender {
+func NewFriendNotificationSender(conf *config.Notification, msgClient *rpcli.MsgClient, opts ...friendNotificationSenderOptions) *FriendNotificationSender {
 	f := &FriendNotificationSender{
-		NotificationSender: rpcclient.NewNotificationSender(conf, rpcclient.WithRpcClient(msgRpcClient)),
+		NotificationSender: rpcclient.NewNotificationSender(conf, rpcclient.WithRpcClient(func(ctx context.Context, req *msg.SendMsgReq) (*msg.SendMsgResp, error) {
+			return msgClient.SendMsg(ctx, req)
+		})),
 	}
 	for _, opt := range opts {
 		opt(f)

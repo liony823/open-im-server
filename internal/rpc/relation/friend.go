@@ -17,16 +17,22 @@ package relation
 import (
 	"context"
 
+	"github.com/liony823/open-im-server/v3/pkg/rpcli"
+
 	"github.com/liony823/tools/mq/memamq"
 
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/cache/redis"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/database/mgo"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/model"
+	"github.com/liony823/open-im-server/v3/pkg/common/webhook"
+	"github.com/liony823/open-im-server/v3/pkg/localcache"
 	"github.com/liony823/tools/db/redisutil"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache/redis"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/database/mgo"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/webhook"
-	"github.com/openimsdk/open-im-server/v3/pkg/localcache"
 
+	"github.com/liony823/open-im-server/v3/pkg/authverify"
+	"github.com/liony823/open-im-server/v3/pkg/common/convert"
+	"github.com/liony823/open-im-server/v3/pkg/common/servererrs"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/controller"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/protocol/relation"
 	"github.com/liony823/protocol/sdkws"
@@ -34,25 +40,19 @@ import (
 	"github.com/liony823/tools/discovery"
 	"github.com/liony823/tools/errs"
 	"github.com/liony823/tools/utils/datautil"
-	"github.com/openimsdk/open-im-server/v3/pkg/authverify"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/convert"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/controller"
-	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
 	"google.golang.org/grpc"
 )
 
 type friendServer struct {
 	relation.UnimplementedFriendServer
-	db                    controller.FriendDatabase
-	blackDatabase         controller.BlackDatabase
-	userRpcClient         *rpcclient.UserRpcClient
-	notificationSender    *FriendNotificationSender
-	conversationRpcClient rpcclient.ConversationRpcClient
-	RegisterCenter        discovery.SvcDiscoveryRegistry
-	config                *Config
-	webhookClient         *webhook.Client
-	queue                 *memamq.MemoryQueue
+	db                 controller.FriendDatabase
+	blackDatabase      controller.BlackDatabase
+	notificationSender *FriendNotificationSender
+	RegisterCenter     discovery.SvcDiscoveryRegistry
+	config             *Config
+	webhookClient      *webhook.Client
+	queue              *memamq.MemoryQueue
+	userClient         *rpcli.UserClient
 }
 
 type Config struct {
@@ -92,15 +92,21 @@ func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryReg
 		return err
 	}
 
-	// Initialize RPC clients
-	userRpcClient := rpcclient.NewUserRpcClient(client, config.Discovery.RpcService.User, config.Share.IMAdminUserID)
-	msgRpcClient := rpcclient.NewMessageRpcClient(client, config.Discovery.RpcService.Msg)
+	userConn, err := client.GetConn(ctx, config.Discovery.RpcService.User)
+	if err != nil {
+		return err
+	}
+	msgConn, err := client.GetConn(ctx, config.Discovery.RpcService.Msg)
+	if err != nil {
+		return err
+	}
+	userClient := rpcli.NewUserClient(userConn)
 
 	// Initialize notification sender
 	notificationSender := NewFriendNotificationSender(
 		&config.NotificationConfig,
-		&msgRpcClient,
-		WithRpcFunc(userRpcClient.GetUsersInfo),
+		rpcli.NewMsgClient(msgConn),
+		WithRpcFunc(userClient.GetUsersInfo),
 	)
 	localcache.InitLocalCache(&config.LocalCacheConfig)
 
@@ -116,13 +122,12 @@ func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryReg
 			blackMongoDB,
 			redis.NewBlackCacheRedis(rdb, &config.LocalCacheConfig, blackMongoDB, redis.GetRocksCacheOptions()),
 		),
-		userRpcClient:         &userRpcClient,
-		notificationSender:    notificationSender,
-		RegisterCenter:        client,
-		conversationRpcClient: rpcclient.NewConversationRpcClient(client, config.Discovery.RpcService.Conversation),
-		config:                config,
-		webhookClient:         webhook.NewWebhookClient(config.WebhooksConfig.URL),
-		queue:                 memamq.NewMemoryQueue(16, 1024*1024),
+		notificationSender: notificationSender,
+		RegisterCenter:     client,
+		config:             config,
+		webhookClient:      webhook.NewWebhookClient(config.WebhooksConfig.URL),
+		queue:              memamq.NewMemoryQueue(16, 1024*1024),
+		userClient:         userClient,
 	})
 	return nil
 }
@@ -139,7 +144,7 @@ func (s *friendServer) ApplyToAddFriend(ctx context.Context, req *relation.Apply
 	if err = s.webhookBeforeAddFriend(ctx, &s.config.WebhooksConfig.BeforeAddFriend, req); err != nil && err != servererrs.ErrCallbackContinue {
 		return nil, err
 	}
-	if _, err := s.userRpcClient.GetUsersInfoMap(ctx, []string{req.ToUserID, req.FromUserID}); err != nil {
+	if err := s.userClient.CheckUser(ctx, []string{req.ToUserID, req.FromUserID}); err != nil {
 		return nil, err
 	}
 
@@ -163,7 +168,8 @@ func (s *friendServer) ImportFriends(ctx context.Context, req *relation.ImportFr
 	if err := authverify.CheckAdmin(ctx, s.config.Share.IMAdminUserID); err != nil {
 		return nil, err
 	}
-	if _, err := s.userRpcClient.GetUsersInfo(ctx, append([]string{req.OwnerUserID}, req.FriendUserIDs...)); err != nil {
+
+	if err := s.userClient.CheckUser(ctx, append([]string{req.OwnerUserID}, req.FriendUserIDs...)); err != nil {
 		return nil, err
 	}
 	if datautil.Contain(req.OwnerUserID, req.FriendUserIDs...) {
@@ -304,7 +310,7 @@ func (s *friendServer) getFriend(ctx context.Context, ownerUserID string, friend
 	if err != nil {
 		return nil, err
 	}
-	return convert.FriendsDB2Pb(ctx, friends, s.userRpcClient.GetUsersInfoMap)
+	return convert.FriendsDB2Pb(ctx, friends, s.userClient.GetUsersInfoMap)
 }
 
 // Get the list of friend requests sent out proactively.
@@ -316,7 +322,7 @@ func (s *friendServer) GetDesignatedFriendsApply(ctx context.Context,
 		return nil, err
 	}
 	resp = &relation.GetDesignatedFriendsApplyResp{}
-	resp.FriendRequests, err = convert.FriendRequestDB2Pb(ctx, friendRequests, s.userRpcClient.GetUsersInfoMap)
+	resp.FriendRequests, err = convert.FriendRequestDB2Pb(ctx, friendRequests, s.userClient.GetUsersInfoMap)
 	if err != nil {
 		return nil, err
 	}
@@ -335,7 +341,7 @@ func (s *friendServer) GetPaginationFriendsApplyTo(ctx context.Context, req *rel
 	}
 
 	resp = &relation.GetPaginationFriendsApplyToResp{}
-	resp.FriendRequests, err = convert.FriendRequestDB2Pb(ctx, friendRequests, s.userRpcClient.GetUsersInfoMap)
+	resp.FriendRequests, err = convert.FriendRequestDB2Pb(ctx, friendRequests, s.userClient.GetUsersInfoMap)
 	if err != nil {
 		return nil, err
 	}
@@ -357,7 +363,7 @@ func (s *friendServer) GetPaginationFriendsApplyFrom(ctx context.Context, req *r
 		return nil, err
 	}
 
-	resp.FriendRequests, err = convert.FriendRequestDB2Pb(ctx, friendRequests, s.userRpcClient.GetUsersInfoMap)
+	resp.FriendRequests, err = convert.FriendRequestDB2Pb(ctx, friendRequests, s.userClient.GetUsersInfoMap)
 	if err != nil {
 		return nil, err
 	}
@@ -388,7 +394,7 @@ func (s *friendServer) GetPaginationFriends(ctx context.Context, req *relation.G
 	}
 
 	resp = &relation.GetPaginationFriendsResp{}
-	resp.FriendsInfo, err = convert.FriendsDB2Pb(ctx, friends, s.userRpcClient.GetUsersInfoMap)
+	resp.FriendsInfo, err = convert.FriendsDB2Pb(ctx, friends, s.userClient.GetUsersInfoMap)
 	if err != nil {
 		return nil, err
 	}
@@ -421,7 +427,7 @@ func (s *friendServer) GetSpecifiedFriendsInfo(ctx context.Context, req *relatio
 		return nil, errs.ErrArgs.WrapMsg("userIDList repeated")
 	}
 
-	userMap, err := s.userRpcClient.GetUsersInfoMap(ctx, req.UserIDList)
+	userMap, err := s.userClient.GetUsersInfoMap(ctx, req.UserIDList)
 	if err != nil {
 		return nil, err
 	}
@@ -524,19 +530,4 @@ func (s *friendServer) UpdateFriends(
 
 	s.notificationSender.FriendsInfoUpdateNotification(ctx, req.OwnerUserID, req.FriendUserIDs)
 	return resp, nil
-}
-
-func (s *friendServer) GetIncrementalFriendsApplyTo(ctx context.Context, req *relation.GetIncrementalFriendsApplyToReq) (*relation.GetIncrementalFriendsApplyToResp, error) {
-	// TODO implement me
-	return nil, nil
-}
-
-func (s *friendServer) GetIncrementalFriendsApplyFrom(ctx context.Context, req *relation.GetIncrementalFriendsApplyFromReq) (*relation.GetIncrementalFriendsApplyFromResp, error) {
-	// TODO implement me
-	return nil, nil
-}
-
-func (s *friendServer) GetIncrementalBlacks(ctx context.Context, req *relation.GetIncrementalBlacksReq) (*relation.GetIncrementalBlacksResp, error) {
-	// TODO implement me
-	return nil, nil
 }

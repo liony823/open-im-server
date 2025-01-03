@@ -22,19 +22,25 @@ import (
 	"sync"
 	"time"
 
+	"github.com/liony823/open-im-server/v3/pkg/rpcli"
+
+	"github.com/liony823/open-im-server/v3/internal/rpc/relation"
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
+	"github.com/liony823/open-im-server/v3/pkg/common/prommetrics"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/cache"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/cache/redis"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/database/mgo"
+	tablerelation "github.com/liony823/open-im-server/v3/pkg/common/storage/model"
+	"github.com/liony823/open-im-server/v3/pkg/common/webhook"
+	"github.com/liony823/open-im-server/v3/pkg/localcache"
 	"github.com/liony823/protocol/group"
 	friendpb "github.com/liony823/protocol/relation"
 	"github.com/liony823/tools/db/redisutil"
-	"github.com/openimsdk/open-im-server/v3/internal/rpc/relation"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/prommetrics"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache/redis"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/database/mgo"
-	tablerelation "github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/webhook"
-	"github.com/openimsdk/open-im-server/v3/pkg/localcache"
 
+	"github.com/liony823/open-im-server/v3/pkg/authverify"
+	"github.com/liony823/open-im-server/v3/pkg/common/convert"
+	"github.com/liony823/open-im-server/v3/pkg/common/servererrs"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/controller"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/protocol/sdkws"
 	pbuser "github.com/liony823/protocol/user"
@@ -43,11 +49,6 @@ import (
 	registry "github.com/liony823/tools/discovery"
 	"github.com/liony823/tools/errs"
 	"github.com/liony823/tools/utils/datautil"
-	"github.com/openimsdk/open-im-server/v3/pkg/authverify"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/convert"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/controller"
-	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
 	"google.golang.org/grpc"
 )
 
@@ -57,11 +58,11 @@ type userServer struct {
 	db                       controller.UserDatabase
 	friendNotificationSender *relation.FriendNotificationSender
 	userNotificationSender   *UserNotificationSender
-	friendRpcClient          *rpcclient.FriendRpcClient
-	groupRpcClient           *rpcclient.GroupRpcClient
 	RegisterCenter           registry.SvcDiscoveryRegistry
 	config                   *Config
 	webhookClient            *webhook.Client
+	groupClient              *rpcli.GroupClient
+	relationClient           *rpcli.RelationClient
 }
 
 type Config struct {
@@ -94,22 +95,33 @@ func Start(ctx context.Context, config *Config, client registry.SvcDiscoveryRegi
 	if err != nil {
 		return err
 	}
+	msgConn, err := client.GetConn(ctx, config.Discovery.RpcService.Msg)
+	if err != nil {
+		return err
+	}
+	groupConn, err := client.GetConn(ctx, config.Discovery.RpcService.Group)
+	if err != nil {
+		return err
+	}
+	friendConn, err := client.GetConn(ctx, config.Discovery.RpcService.Friend)
+	if err != nil {
+		return err
+	}
+	msgClient := rpcli.NewMsgClient(msgConn)
 	userCache := redis.NewUserCacheRedis(rdb, &config.LocalCacheConfig, userDB, redis.GetRocksCacheOptions())
 	database := controller.NewUserDatabase(userDB, userCache, mgocli.GetTx())
-	friendRpcClient := rpcclient.NewFriendRpcClient(client, config.Discovery.RpcService.Friend)
-	groupRpcClient := rpcclient.NewGroupRpcClient(client, config.Discovery.RpcService.Group)
-	msgRpcClient := rpcclient.NewMessageRpcClient(client, config.Discovery.RpcService.Msg)
 	localcache.InitLocalCache(&config.LocalCacheConfig)
 	u := &userServer{
 		online:                   redis.NewUserOnline(rdb),
 		db:                       database,
 		RegisterCenter:           client,
-		friendRpcClient:          &friendRpcClient,
-		groupRpcClient:           &groupRpcClient,
-		friendNotificationSender: relation.NewFriendNotificationSender(&config.NotificationConfig, &msgRpcClient, relation.WithDBFunc(database.FindWithError)),
-		userNotificationSender:   NewUserNotificationSender(config, &msgRpcClient, WithUserFunc(database.FindWithError)),
+		friendNotificationSender: relation.NewFriendNotificationSender(&config.NotificationConfig, msgClient, relation.WithDBFunc(database.FindWithError)),
+		userNotificationSender:   NewUserNotificationSender(config, msgClient, WithUserFunc(database.FindWithError)),
 		config:                   config,
 		webhookClient:            webhook.NewWebhookClient(config.WebhooksConfig.URL),
+
+		groupClient:    rpcli.NewGroupClient(groupConn),
+		relationClient: rpcli.NewRelationClient(friendConn),
 	}
 	pbuser.RegisterUserServer(server, u)
 	return u.db.InitOnce(context.Background(), users)
@@ -641,7 +653,7 @@ func (s *userServer) NotificationUserInfoUpdate(ctx context.Context, userID stri
 	wg.Add(len(es))
 	go func() {
 		defer wg.Done()
-		_, es[0] = s.groupRpcClient.Client.NotificationUserInfoUpdate(ctx, &group.NotificationUserInfoUpdateReq{
+		_, es[0] = s.groupClient.NotificationUserInfoUpdate(ctx, &group.NotificationUserInfoUpdateReq{
 			UserID:      userID,
 			OldUserInfo: oldUserInfo,
 			NewUserInfo: newUserInfo,
@@ -650,7 +662,7 @@ func (s *userServer) NotificationUserInfoUpdate(ctx context.Context, userID stri
 
 	go func() {
 		defer wg.Done()
-		_, es[1] = s.friendRpcClient.Client.NotificationUserInfoUpdate(ctx, &friendpb.NotificationUserInfoUpdateReq{
+		_, es[1] = s.relationClient.NotificationUserInfoUpdate(ctx, &friendpb.NotificationUserInfoUpdateReq{
 			UserID:      userID,
 			OldUserInfo: oldUserInfo,
 			NewUserInfo: newUserInfo,

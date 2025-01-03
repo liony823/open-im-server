@@ -2,11 +2,15 @@ package push
 
 import (
 	"context"
+	"errors"
 	"sync"
+
+	conf "github.com/liony823/open-im-server/v3/pkg/common/config"
 
 	"github.com/liony823/protocol/msggateway"
 	"github.com/liony823/protocol/sdkws"
 	"github.com/liony823/tools/discovery"
+	"github.com/liony823/tools/errs"
 	"github.com/liony823/tools/log"
 	"github.com/liony823/tools/utils/datautil"
 	"golang.org/x/sync/errgroup"
@@ -38,15 +42,16 @@ func (u emptyOnlinePusher) GetOnlinePushFailedUserIDs(ctx context.Context, msg *
 }
 
 func NewOnlinePusher(disCov discovery.SvcDiscoveryRegistry, config *Config) OnlinePusher {
-	switch config.Discovery.Enable {
-	case "k8s":
-		return NewK8sStaticConsistentHash(disCov, config)
-	case "zookeeper":
+
+	if config.runTimeEnv == conf.KUBERNETES {
 		return NewDefaultAllNode(disCov, config)
-	case "etcd":
+	}
+	switch config.Discovery.Enable {
+	case conf.ETCD:
 		return NewDefaultAllNode(disCov, config)
 	default:
-		return newEmptyOnlinePusher()
+		log.ZError(context.Background(), "NewOnlinePusher is error", errs.Wrap(errors.New("unsupported discovery type")), "type", config.Discovery.Enable)
+		return nil
 	}
 }
 

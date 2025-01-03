@@ -18,17 +18,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/liony823/open-im-server/v3/pkg/msgprocessor"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/tools/errs"
 	"github.com/liony823/tools/field"
-	"github.com/openimsdk/open-im-server/v3/pkg/msgprocessor"
 	"gopkg.in/yaml.v3"
 )
 
 const (
-	FileName             = "config.yaml"
-	NotificationFileName = "notification.yaml"
-	DefaultFolderPath    = "../config/"
+	DefaultFolderPath = "../config/"
 )
 
 // return absolude path join ../config/, this is k8s container config path.
@@ -61,7 +59,7 @@ func GetProjectRoot() (string, error) {
 func GetOptionsByNotification(cfg NotificationConfig) msgprocessor.Options {
 	opts := msgprocessor.NewOptions()
 
-	if cfg.UnreadCount {
+	if cfg.IsSendMsg {
 		opts = msgprocessor.WithOptions(opts, msgprocessor.WithUnreadCount(true))
 	}
 	if cfg.OfflinePush.Enable {

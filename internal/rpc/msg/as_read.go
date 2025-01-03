@@ -18,13 +18,13 @@ import (
 	"context"
 	"errors"
 
+	cbapi "github.com/liony823/open-im-server/v3/pkg/callbackstruct"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/protocol/msg"
 	"github.com/liony823/protocol/sdkws"
 	"github.com/liony823/tools/errs"
 	"github.com/liony823/tools/log"
 	"github.com/liony823/tools/utils/datautil"
-	cbapi "github.com/openimsdk/open-im-server/v3/pkg/callbackstruct"
 	"github.com/redis/go-redis/v9"
 )
 

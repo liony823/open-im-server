@@ -19,14 +19,14 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/liony823/open-im-server/v3/pkg/callbackstruct"
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
+	"github.com/liony823/open-im-server/v3/pkg/common/servererrs"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/tools/log"
 	"github.com/liony823/tools/mcontext"
 	"github.com/liony823/tools/mq/memamq"
 	"github.com/liony823/tools/utils/httputil"
-	"github.com/openimsdk/open-im-server/v3/pkg/callbackstruct"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
 )
 
 type Client struct {

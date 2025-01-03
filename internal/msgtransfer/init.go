@@ -25,27 +25,27 @@ import (
 	"strconv"
 	"syscall"
 
+	"github.com/liony823/tools/discovery"
 	"github.com/liony823/tools/discovery/etcd"
 	"github.com/liony823/tools/utils/jsonutil"
 	"github.com/liony823/tools/utils/network"
 
+	"github.com/liony823/open-im-server/v3/pkg/common/prommetrics"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/cache/redis"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/database/mgo"
 	"github.com/liony823/tools/db/mongoutil"
 	"github.com/liony823/tools/db/redisutil"
 	"github.com/liony823/tools/utils/datautil"
 	"github.com/liony823/tools/utils/runtimeenv"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/prommetrics"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache/redis"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/database/mgo"
 
+	conf "github.com/liony823/open-im-server/v3/pkg/common/config"
+	discRegister "github.com/liony823/open-im-server/v3/pkg/common/discovery"
+	disetcd "github.com/liony823/open-im-server/v3/pkg/common/discovery/etcd"
+	"github.com/liony823/open-im-server/v3/pkg/common/storage/controller"
 	"github.com/liony823/tools/errs"
 	"github.com/liony823/tools/log"
 	"github.com/liony823/tools/mw"
 	"github.com/liony823/tools/system/program"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
-	discRegister "github.com/openimsdk/open-im-server/v3/pkg/common/discoveryregister"
-	kdisc "github.com/openimsdk/open-im-server/v3/pkg/common/discoveryregister"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/controller"
-	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -64,13 +64,13 @@ type MsgTransfer struct {
 }
 
 type Config struct {
-	MsgTransfer    config.MsgTransfer
-	RedisConfig    config.Redis
-	MongodbConfig  config.Mongo
-	KafkaConfig    config.Kafka
-	Share          config.Share
-	WebhooksConfig config.Webhooks
-	Discovery      config.Discovery
+	MsgTransfer    conf.MsgTransfer
+	RedisConfig    conf.Redis
+	MongodbConfig  conf.Mongo
+	KafkaConfig    conf.Kafka
+	Share          conf.Share
+	WebhooksConfig conf.Webhooks
+	Discovery      conf.Discovery
 }
 
 func Start(ctx context.Context, index int, config *Config) error {
@@ -94,11 +94,25 @@ func Start(ctx context.Context, index int, config *Config) error {
 	client.AddOption(mw.GrpcClient(), grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"LoadBalancingPolicy": "%s"}`, "round_robin")))
 
-	msgModel := redis.NewMsgCache(rdb)
+	if config.Discovery.Enable == conf.ETCD {
+		cm := disetcd.NewConfigManager(client.(*etcd.SvcDiscoveryRegistryImpl).GetClient(), []string{
+			config.MsgTransfer.GetConfigFileName(),
+			config.RedisConfig.GetConfigFileName(),
+			config.MongodbConfig.GetConfigFileName(),
+			config.KafkaConfig.GetConfigFileName(),
+			config.Share.GetConfigFileName(),
+			config.WebhooksConfig.GetConfigFileName(),
+			config.Discovery.GetConfigFileName(),
+			conf.LogConfigFileName,
+		})
+		cm.Watch(ctx)
+	}
+
 	msgDocModel, err := mgo.NewMsgMongo(mgocli.GetDB())
 	if err != nil {
 		return err
 	}
+	msgModel := redis.NewMsgCache(rdb, msgDocModel)
 	seqConversation, err := mgo.NewSeqConversationMongo(mgocli.GetDB())
 	if err != nil {
 		return err
@@ -113,9 +127,7 @@ func Start(ctx context.Context, index int, config *Config) error {
 	if err != nil {
 		return err
 	}
-	conversationRpcClient := rpcclient.NewConversationRpcClient(client, config.Discovery.RpcService.Conversation)
-	groupRpcClient := rpcclient.NewGroupRpcClient(client, config.Discovery.RpcService.Group)
-	historyCH, err := NewOnlineHistoryRedisConsumerHandler(&config.KafkaConfig, msgTransferDatabase, &conversationRpcClient, &groupRpcClient)
+	historyCH, err := NewOnlineHistoryRedisConsumerHandler(ctx, client, config, msgTransferDatabase)
 	if err != nil {
 		return err
 	}
@@ -129,10 +141,11 @@ func Start(ctx context.Context, index int, config *Config) error {
 		historyMongoCH: historyMongoCH,
 		runTimeEnv:     runTimeEnv,
 	}
-	return msgTransfer.Start(index, config)
+
+	return msgTransfer.Start(index, config, client)
 }
 
-func (m *MsgTransfer) Start(index int, config *Config) error {
+func (m *MsgTransfer) Start(index int, config *Config, client discovery.SvcDiscoveryRegistry) error {
 	m.ctx, m.cancel = context.WithCancel(context.Background())
 	var (
 		netDone = make(chan struct{}, 1)
@@ -145,11 +158,6 @@ func (m *MsgTransfer) Start(index int, config *Config) error {
 	err := m.historyCH.redisMessageBatches.Start()
 	if err != nil {
 		return err
-	}
-
-	client, err := kdisc.NewDiscoveryRegister(&config.Discovery, m.runTimeEnv)
-	if err != nil {
-		return errs.WrapMsg(err, "failed to register discovery service")
 	}
 
 	registerIP, err := network.GetRpcRegisterIP("")
@@ -168,7 +176,7 @@ func (m *MsgTransfer) Start(index int, config *Config) error {
 		return listener, port, nil
 	}
 
-	if config.MsgTransfer.Prometheus.AutoSetPorts && config.Discovery.Enable != kdisc.Etcd {
+	if config.MsgTransfer.Prometheus.AutoSetPorts && config.Discovery.Enable != conf.ETCD {
 		return errs.New("only etcd support autoSetPorts", "RegisterName", "api").Wrap()
 	}
 
@@ -204,7 +212,7 @@ func (m *MsgTransfer) Start(index int, config *Config) error {
 		go func() {
 			defer func() {
 				if r := recover(); r != nil {
-					log.ZPanic(m.ctx, "MsgTransfer Start Panic", r)
+					log.ZPanic(m.ctx, "MsgTransfer Start Panic", errs.ErrPanic(r))
 				}
 			}()
 			if err := prommetrics.TransferInit(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {

@@ -12,13 +12,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/liony823/open-im-server/v3/pkg/apistruct"
+	cbapi "github.com/liony823/open-im-server/v3/pkg/callbackstruct"
 	"github.com/liony823/protocol/auth"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/protocol/msg"
 	"github.com/liony823/tools/apiresp"
 	"github.com/liony823/tools/errs"
-	"github.com/openimsdk/open-im-server/v3/pkg/apistruct"
-	cbapi "github.com/openimsdk/open-im-server/v3/pkg/callbackstruct"
 )
 
 const (

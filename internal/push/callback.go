@@ -18,13 +18,13 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/openimsdk/open-im-server/v3/pkg/common/webhook"
+	"github.com/liony823/open-im-server/v3/pkg/common/webhook"
 
+	"github.com/liony823/open-im-server/v3/pkg/callbackstruct"
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
 	"github.com/liony823/protocol/constant"
 	"github.com/liony823/protocol/sdkws"
 	"github.com/liony823/tools/mcontext"
-	"github.com/openimsdk/open-im-server/v3/pkg/callbackstruct"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 )
 
 func (c *ConsumerHandler) webhookBeforeOfflinePush(ctx context.Context, before *config.BeforeConfig, userIDs []string, msg *sdkws.MsgData, offlinePushUserIDs *[]string) error {

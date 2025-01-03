@@ -312,10 +312,10 @@ github.com/lestrrat-go/strftime v1.0.6 h1:CFGsDEt1pOpFNU+TJB0nhz9jl+K0hZSLE205Ah
 github.com/lestrrat-go/strftime v1.0.6/go.mod h1:f7jQKgV5nnJpYgdEasS+/y7EsTb8ykN2z68n3TtcTaw=
 github.com/likexian/gokit v0.25.13 h1:p2Uw3+6fGG53CwdU2Dz0T6bOycdb2+bAFAa3ymwWVkM=
 github.com/likexian/gokit v0.25.13/go.mod h1:qQhEWFBEfqLCO3/vOEo2EDKd+EycekVtUK4tex+l2H4=
-github.com/liony823/protocol v0.0.1-alpha.2 h1:9aKjY463wb5yhUOObdwecGlyZvEGe4uP5U3c/83X+s4=
-github.com/liony823/protocol v0.0.1-alpha.2/go.mod h1:Yt1+JkSVZsSZwiqEv9gh0ock9uLwRQ/du9clT4AM30w=
-github.com/liony823/tools v0.0.1-alpha.5 h1:9sIuBR6yhQ6u/OgPl4up9ji2k7KUNdYx+zykqxmN8Gc=
-github.com/liony823/tools v0.0.1-alpha.5/go.mod h1:uYQ5IYN9S9tZuuOanruR7K99L0M0bWczhPnJSq/iXvM=
+github.com/liony823/protocol v0.0.1-alpha.4 h1:+b+HV1yKzbmRLHiR02BotnrrpRDgbK66gbZEDqGiA8E=
+github.com/liony823/protocol v0.0.1-alpha.4/go.mod h1:G9KiIuh+lG1LiF99USjH2wB6c0KnISUJekXY0zkudQU=
+github.com/liony823/tools v0.0.1-alpha.6 h1:nBHvoym4n01Ov218XH9IZalqQsHeN3vST55BDfuxYIs=
+github.com/liony823/tools v0.0.1-alpha.6/go.mod h1:PunshctHBjJ4TH9shHOdXB7mEEJvjE7i0/7FwU82st0=
 github.com/lithammer/shortuuid v3.0.0+incompatible h1:NcD0xWW/MZYXEHa6ITy6kaXN5nwm/V115vj2YXfhS0w=
 github.com/lithammer/shortuuid v3.0.0+incompatible/go.mod h1:FR74pbAuElzOUuenUHTK2Tciko1/vKuIKS9dSkDrA4w=
 github.com/magefile/mage v1.15.0 h1:BvGheCMAsG3bWUDbZ8AyXXpCNwU9u5CB6sM+HNb9HYg=

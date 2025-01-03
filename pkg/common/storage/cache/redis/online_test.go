@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/liony823/open-im-server/v3/pkg/common/config"
 	"github.com/liony823/tools/db/redisutil"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 )
 
 /*
