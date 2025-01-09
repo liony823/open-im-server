@@ -16,6 +16,7 @@ package relation
 
 import (
 	"context"
+
 	"github.com/openimsdk/open-im-server/v3/pkg/rpcli"
 
 	"github.com/openimsdk/tools/mq/memamq"
@@ -46,6 +47,7 @@ type friendServer struct {
 	relation.UnimplementedFriendServer
 	db                 controller.FriendDatabase
 	blackDatabase      controller.BlackDatabase
+	friendRelation        controller.FriendRelationDatabase
 	notificationSender *FriendNotificationSender
 	RegisterCenter     discovery.SvcDiscoveryRegistry
 	config             *Config
@@ -91,6 +93,11 @@ func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryReg
 		return err
 	}
 
+	friendRelationMongoDB, err := mgo.NewFriendRelationMgo(mgocli.GetDB())
+	if err != nil {
+		return err
+	}
+
 	userConn, err := client.GetConn(ctx, config.Discovery.RpcService.User)
 	if err != nil {
 		return err
@@ -114,12 +121,17 @@ func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryReg
 		db: controller.NewFriendDatabase(
 			friendMongoDB,
 			friendRequestMongoDB,
+			friendRelationMongoDB,
 			redis.NewFriendCacheRedis(rdb, &config.LocalCacheConfig, friendMongoDB, redis.GetRocksCacheOptions()),
 			mgocli.GetTx(),
 		),
 		blackDatabase: controller.NewBlackDatabase(
 			blackMongoDB,
 			redis.NewBlackCacheRedis(rdb, &config.LocalCacheConfig, blackMongoDB, redis.GetRocksCacheOptions()),
+		),
+		friendRelation: controller.NewFriendRelation(
+			friendRelationMongoDB,
+			redis.NewFriendRelationCacheRedis(rdb, &config.LocalCacheConfig, friendRelationMongoDB, redis.GetRocksCacheOptions()),
 		),
 		notificationSender: notificationSender,
 		RegisterCenter:     client,
@@ -529,4 +541,87 @@ func (s *friendServer) UpdateFriends(
 
 	s.notificationSender.FriendsInfoUpdateNotification(ctx, req.OwnerUserID, req.FriendUserIDs)
 	return resp, nil
+}
+
+/* OWLIM 的 新加 */
+func (s *friendServer) GetFollowerIDs(ctx context.Context, req *relation.GetFollowerIDsReq) (*relation.GetFollowerIDsResp, error) {
+	if err := authverify.CheckAccessV3(ctx, req.UserID, s.config.Share.IMAdminUserID); err != nil {
+		return nil, err
+	}
+	userIDs, err := s.friendRelation.GetFollowerUserIDs(ctx, req.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return &relation.GetFollowerIDsResp{UserIDs: userIDs}, nil
+}
+
+func (s *friendServer) GetSubscriberIDs(ctx context.Context, req *relation.GetSubscriberIDsReq) (*relation.GetSubscriberIDsResp, error) {
+	if err := authverify.CheckAccessV3(ctx, req.UserID, s.config.Share.IMAdminUserID); err != nil {
+		return nil, err
+	}
+	userIDs, err := s.friendRelation.GetSubscriberUserIDs(ctx, req.UserID)
+	if err != nil {
+		return nil, err
+	}
+	return &relation.GetSubscriberIDsResp{UserIDs: userIDs}, nil
+}
+
+func (s *friendServer) BlockUser(ctx context.Context, req *relation.BlockUserReq) (*relation.BlockUserResp, error) {
+	if err := authverify.CheckAccessV3(ctx, req.OwnerUserID, s.config.Share.IMAdminUserID); err != nil {
+		return nil, err
+	}
+	if err := s.friendRelation.BlockUser(ctx, req.OwnerUserID, req.RelatedUserID); err != nil {
+		return nil, err
+	}
+	return &relation.BlockUserResp{}, nil
+}
+
+func (s *friendServer) UnblockUser(ctx context.Context, req *relation.UnblockUserReq) (*relation.UnblockUserResp, error) {
+	if err := authverify.CheckAccessV3(ctx, req.OwnerUserID, s.config.Share.IMAdminUserID); err != nil {
+		return nil, err
+	}
+	if err := s.friendRelation.UnblockUser(ctx, req.OwnerUserID, req.RelatedUserID); err != nil {
+		return nil, err
+	}
+	return &relation.UnblockUserResp{}, nil
+}
+
+func (s *friendServer) FollowUser(ctx context.Context, req *relation.FollowUserReq) (*relation.FollowUserResp, error) {
+	if err := authverify.CheckAccessV3(ctx, req.OwnerUserID, s.config.Share.IMAdminUserID); err != nil {
+		return nil, err
+	}
+	if err := s.friendRelation.FollowUser(ctx, req.OwnerUserID, req.RelatedUserID); err != nil {
+		return nil, err
+	}
+	return &relation.FollowUserResp{}, nil
+}
+
+func (s *friendServer) UnfollowUser(ctx context.Context, req *relation.UnfollowUserReq) (*relation.UnfollowUserResp, error) {
+	if err := authverify.CheckAccessV3(ctx, req.OwnerUserID, s.config.Share.IMAdminUserID); err != nil {
+		return nil, err
+	}
+	if err := s.friendRelation.UnfollowUser(ctx, req.OwnerUserID, req.RelatedUserID); err != nil {
+		return nil, err
+	}
+	return &relation.UnfollowUserResp{}, nil
+}
+
+func (s *friendServer) SubscribeUser(ctx context.Context, req *relation.SubscribeUserReq) (*relation.SubscribeUserResp, error) {
+	if err := authverify.CheckAccessV3(ctx, req.OwnerUserID, s.config.Share.IMAdminUserID); err != nil {
+		return nil, err
+	}
+	if err := s.friendRelation.SubscribeUser(ctx, req.OwnerUserID, req.RelatedUserID); err != nil {
+		return nil, err
+	}
+	return &relation.SubscribeUserResp{}, nil
+}
+
+func (s *friendServer) UnsubscribeUser(ctx context.Context, req *relation.UnsubscribeUserReq) (*relation.UnsubscribeUserResp, error) {
+	if err := authverify.CheckAccessV3(ctx, req.OwnerUserID, s.config.Share.IMAdminUserID); err != nil {
+		return nil, err
+	}
+	if err := s.friendRelation.UnsubscribeUser(ctx, req.OwnerUserID, req.RelatedUserID); err != nil {
+		return nil, err
+	}
+	return &relation.UnsubscribeUserResp{}, nil
 }

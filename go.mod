@@ -26,6 +26,8 @@ require (
 
 require github.com/google/uuid v1.6.0
 
+replace github.com/openimsdk/protocol => github.com/liony823/protocol v0.0.3-owl
+
 require (
 	github.com/IBM/sarama v1.43.0
 	github.com/fatih/color v1.14.1

@@ -92,12 +92,13 @@ type FriendDatabase interface {
 type friendDatabase struct {
 	friend        database.Friend
 	friendRequest database.FriendRequest
+	friendRelation database.FriendRelation
 	tx            tx.Tx
 	cache         cache.FriendCache
 }
 
-func NewFriendDatabase(friend database.Friend, friendRequest database.FriendRequest, cache cache.FriendCache, tx tx.Tx) FriendDatabase {
-	return &friendDatabase{friend: friend, friendRequest: friendRequest, cache: cache, tx: tx}
+func NewFriendDatabase(friend database.Friend, friendRequest database.FriendRequest, friendRelation database.FriendRelation, cache cache.FriendCache, tx tx.Tx) FriendDatabase {
+	return &friendDatabase{friend: friend, friendRequest: friendRequest, friendRelation: friendRelation, cache: cache, tx: tx}
 }
 
 // CheckIn verifies if user2 is in user1's friend list (inUser1Friends returns true) and

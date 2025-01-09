@@ -6,6 +6,7 @@ const (
 	FriendName              = "friend"
 	FriendVersionName       = "friend_version"
 	FriendRequestName       = "friend_request"
+	FriendRelationName      = "friend_relation" //owlIM 新加
 	GroupName               = "group"
 	GroupMemberName         = "group_member"
 	GroupMemberVersionName  = "group_member_version"

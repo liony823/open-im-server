@@ -6,9 +6,10 @@ import (
 )
 
 const (
-	OnlineKey     = "ONLINE:"
-	OnlineChannel = "online_change"
-	OnlineExpire  = time.Hour / 2
+	OnlineKey           = "ONLINE:"
+	OnlineChannel       = "online_change"
+	OnlineExpire        = time.Hour / 2
+	LatestOnlineTimeKey = "ONLINETIME:" // OWLIM 的 新加
 )
 
 func GetOnlineKey(userID string) string {
@@ -17,4 +18,10 @@ func GetOnlineKey(userID string) string {
 
 func GetOnlineKeyUserID(key string) string {
 	return strings.TrimPrefix(key, OnlineKey)
+}
+
+/* OWLIM 的 新加 */
+
+func GetLatestOnlineTimeKey(userID string) string {
+	return LatestOnlineTimeKey + userID
 }
