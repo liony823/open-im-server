@@ -17,16 +17,18 @@ import (
 
 func NewUserOnline(rdb redis.UniversalClient) cache.OnlineCache {
 	return &userOnline{
-		rdb:         rdb,
-		expire:      cachekey.OnlineExpire,
-		channelName: cachekey.OnlineChannel,
+		rdb:              rdb,
+		expire:           cachekey.OnlineExpire,
+		channelName:      cachekey.OnlineChannel,
+		onlineTimeExpire: time.Hour * 24 * 30,
 	}
 }
 
 type userOnline struct {
-	rdb         redis.UniversalClient
-	expire      time.Duration
-	channelName string
+	rdb              redis.UniversalClient
+	expire           time.Duration
+	channelName      string
+	onlineTimeExpire time.Duration
 }
 
 func (s *userOnline) getUserOnlineKey(userID string) string {
@@ -131,14 +133,15 @@ func (s *userOnline) SetUserOnline(ctx context.Context, userID string, online, o
 		if err := s.rdb.Publish(ctx, s.channelName, msg).Err(); err != nil {
 			return errs.Wrap(err)
 		}
+
+		// OWLIM 的 新加
+		if err := s.rdb.Set(ctx, s.getUserLatestOnlineTimeKey(userID), strconv.FormatInt(now.Unix(), 10), s.onlineTimeExpire).Err(); err != nil {
+			return errs.Wrap(err)
+		}
 	} else {
 		log.ZDebug(ctx, "redis SetUserOnline not push", "userID", userID, "online", online, "offline", offline)
 	}
 
-	// OWLIM 的 新加
-	if err := s.rdb.Set(ctx, s.getUserLatestOnlineTimeKey(userID), now.Unix(), time.Hour*24*30).Err(); err != nil {
-		return errs.Wrap(err)
-	}
 	return nil
 }
 
