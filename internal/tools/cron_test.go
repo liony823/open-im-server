@@ -24,7 +24,7 @@ func TestName(t *testing.T) {
 			Address:       []string{"localhost:12379"},
 		},
 	}
-	client, err := kdisc.NewDiscoveryRegister(conf, "source")
+	client, err := kdisc.NewDiscoveryRegister(conf, "source", []string{"msg-rpc-service", "third-rpc-service", "conversation-rpc-service"})
 	if err != nil {
 		panic(err)
 	}

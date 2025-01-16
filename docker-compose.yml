@@ -10,12 +10,17 @@ services:
     container_name: mongo
     command: >
       bash -c '
+      chmod 600 /data/configdb/mongodb.key &&
       docker-entrypoint.sh mongod --wiredTigerCacheSizeGB $$wiredTigerCacheSizeGB --auth &
       until mongosh -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval "db.runCommand({ ping: 1 })" &>/dev/null; do
         echo "Waiting for MongoDB to start..."
         sleep 1
       done &&
       mongosh -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval "
+      rs.initiate({
+        _id: \"rs0\",
+        members: [{ _id: 0, host: \"localhost:27017\" }]
+      });
       db = db.getSiblingDB(\"$$MONGO_INITDB_DATABASE\");
       if (!db.getUser(\"$$MONGO_OPENIM_USERNAME\")) {
         db.createUser({
@@ -34,6 +39,7 @@ services:
       tail -f /dev/null
       '
     volumes:
+      - "${DATA_DIR}/mongodb.key:/data/configdb/mongodb.key"
       - "${DATA_DIR}/components/mongodb/data/db:/data/db"
       - "${DATA_DIR}/components/mongodb/data/logs:/data/logs"
       - "${DATA_DIR}/components/mongodb/data/conf:/etc/mongo"
@@ -41,10 +47,11 @@ services:
       - TZ=Asia/Shanghai
       - wiredTigerCacheSizeGB=1
       - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=openIM123
-      - MONGO_INITDB_DATABASE=openim_v3
-      - MONGO_OPENIM_USERNAME=openIM
-      - MONGO_OPENIM_PASSWORD=openIM123
+      - MONGO_INITDB_ROOT_PASSWORD=owlIM123
+      - MONGO_INITDB_DATABASE=owlim_v1
+      - MONGO_OPENIM_USERNAME=owlIM
+      - MONGO_OPENIM_PASSWORD=owlIM123
+      - MONGO_VERSION=1.0.1
     restart: always
     networks:
       - openim
@@ -62,7 +69,7 @@ services:
     restart: always
     sysctls:
       net.core.somaxconn: 1024
-    command: redis-server /usr/local/redis/config/redis.conf --requirepass openIM123 --appendonly yes
+    command: redis-server /usr/local/redis/config/redis.conf --requirepass owlIM123 --appendonly yes
     networks:
       - openim
 
@@ -124,30 +131,12 @@ services:
     environment:
       TZ: Asia/Shanghai
       MINIO_ROOT_USER: root
-      MINIO_ROOT_PASSWORD: openIM123
+      MINIO_ROOT_PASSWORD: owlIM123
     restart: always
     command: minio server /data --console-address ':9090'
     networks:
       - openim
 
-  openim-web-front:
-    image: ${OPENIM_WEB_FRONT_IMAGE}
-    container_name: openim-web-front
-    restart: always
-    ports:
-      - "11001:80"
-    networks:
-      - openim
-
-  openim-admin-front:
-    image: ${OPENIM_ADMIN_FRONT_IMAGE}
-    container_name: openim-admin-front
-    restart: always
-    ports:
-      - "11002:80"
-    networks:
-      - openim
-      
   prometheus:
     image: ${PROMETHEUS_IMAGE}
     container_name: prometheus

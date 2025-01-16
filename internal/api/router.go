@@ -113,6 +113,7 @@ func newGinRouter(ctx context.Context, client discovery.SvcDiscoveryRegistry, cf
 		userRouterGroup.POST("/get_users_online_token_detail", u.GetUsersOnlineTokenDetail)
 		userRouterGroup.POST("/subscribe_users_status", u.SubscriberStatus)
 		userRouterGroup.POST("/get_users_status", u.GetUserStatus)
+		userRouterGroup.POST("/get_users_time", u.GetUsersTime)
 		userRouterGroup.POST("/get_subscribe_users_status", u.GetSubscribeUsersStatus)
 
 		userRouterGroup.POST("/process_user_command_add", u.ProcessUserCommandAdd)
@@ -150,6 +151,16 @@ func newGinRouter(ctx context.Context, client discovery.SvcDiscoveryRegistry, cf
 		friendRouterGroup.POST("/update_friends", f.UpdateFriends)
 		friendRouterGroup.POST("/get_incremental_friends", f.GetIncrementalFriends)
 		friendRouterGroup.POST("/get_full_friend_user_ids", f.GetFullFriendUserIDs)
+
+		// OWLIM 的 新加接口
+		friendRouterGroup.POST("/get_follower_ids", f.GetFollowerIDs)
+		friendRouterGroup.POST("/get_subscriber_ids", f.GetSubscriberIDs)
+		friendRouterGroup.POST("/subscribe_user", f.SubscribeUser)
+		friendRouterGroup.POST("/unsubscribe_user", f.UnsubscribeUser)
+		friendRouterGroup.POST("/follow_user", f.FollowUser)
+		friendRouterGroup.POST("/unfollow_user", f.UnfollowUser)
+		friendRouterGroup.POST("/block_user", f.BlockUser)
+		friendRouterGroup.POST("/unblock_user", f.UnblockUser)
 	}
 
 	g := NewGroupApi(group.NewGroupClient(groupConn))

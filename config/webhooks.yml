@@ -1,8 +1,8 @@
 url: http://127.0.0.1:10006/callbackExample
 beforeSendSingleMsg:
-  enable: false
-  timeout: 5
-  failedContinue: true
+  enable: true
+  timeout: 20
+  failedContinue: false
   # Only the contentType in allowedTypes will send the callback.
   # Supports two formats: a single type or a range. The range is defined by the lower and upper bounds connected with a hyphen ("-").
   # e.g. allowedTypes: [1, 100, 200-500, 600-700] means that only contentType within the range
@@ -30,9 +30,9 @@ afterSendSingleMsg:
   allowedTypes: []
   deniedTypes: []
 beforeSendGroupMsg:
-  enable: false
-  timeout: 5
-  failedContinue: true
+  enable: true
+  timeout: 20
+  failedContinue: false
   # See beforeSendSingleMsg comment.
   allowedTypes: []
   deniedTypes: []

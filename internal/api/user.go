@@ -206,6 +206,11 @@ func (u *UserApi) GetSubscribeUsersStatus(c *gin.Context) {
 	a2r.Call(c, user.UserClient.GetSubscribeUsersStatus, u.Client)
 }
 
+// GetUserStatus Get the online time of the user.
+func (u *UserApi) GetUsersTime(c *gin.Context) {
+	a2r.Call(c, user.UserClient.GetUsersTime, u.Client)
+}
+
 // ProcessUserCommandAdd user general function add.
 func (u *UserApi) ProcessUserCommandAdd(c *gin.Context) {
 	a2r.Call(c, user.UserClient.ProcessUserCommandAdd, u.Client)

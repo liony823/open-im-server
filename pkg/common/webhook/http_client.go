@@ -17,6 +17,8 @@ package webhook
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+
 	"github.com/openimsdk/open-im-server/v3/pkg/callbackstruct"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
@@ -25,7 +27,6 @@ import (
 	"github.com/openimsdk/tools/mcontext"
 	"github.com/openimsdk/tools/mq/memamq"
 	"github.com/openimsdk/tools/utils/httputil"
-	"net/http"
 )
 
 type Client struct {
@@ -75,6 +76,7 @@ func (c *Client) post(ctx context.Context, command string, input interface{}, ou
 	if err != nil {
 		return servererrs.ErrNetwork.WrapMsg(err.Error(), "post url", fullURL)
 	}
+	log.ZInfo(ctx, "webhook response", "data", b)
 	if err = json.Unmarshal(b, output); err != nil {
 		return servererrs.ErrData.WithDetail(err.Error() + " response format error")
 	}

@@ -3,29 +3,32 @@ package redis
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache/cachekey"
 	"github.com/openimsdk/protocol/constant"
 	"github.com/openimsdk/tools/errs"
 	"github.com/openimsdk/tools/log"
 	"github.com/redis/go-redis/v9"
-	"strconv"
-	"strings"
-	"time"
 )
 
 func NewUserOnline(rdb redis.UniversalClient) cache.OnlineCache {
 	return &userOnline{
-		rdb:         rdb,
-		expire:      cachekey.OnlineExpire,
-		channelName: cachekey.OnlineChannel,
+		rdb:              rdb,
+		expire:           cachekey.OnlineExpire,
+		channelName:      cachekey.OnlineChannel,
+		onlineTimeExpire: time.Hour * 24 * 30,
 	}
 }
 
 type userOnline struct {
-	rdb         redis.UniversalClient
-	expire      time.Duration
-	channelName string
+	rdb              redis.UniversalClient
+	expire           time.Duration
+	channelName      string
+	onlineTimeExpire time.Duration
 }
 
 func (s *userOnline) getUserOnlineKey(userID string) string {
@@ -130,8 +133,35 @@ func (s *userOnline) SetUserOnline(ctx context.Context, userID string, online, o
 		if err := s.rdb.Publish(ctx, s.channelName, msg).Err(); err != nil {
 			return errs.Wrap(err)
 		}
+
+		// OWLIM 的 新加
+		if err := s.rdb.Set(ctx, s.getUserLatestOnlineTimeKey(userID), strconv.FormatInt(now.Unix(), 10), s.onlineTimeExpire).Err(); err != nil {
+			return errs.Wrap(err)
+		}
 	} else {
 		log.ZDebug(ctx, "redis SetUserOnline not push", "userID", userID, "online", online, "offline", offline)
 	}
+
 	return nil
+}
+
+/* OWLIM 的 新加 */
+
+func (s *userOnline) getUserLatestOnlineTimeKey(userID string) string {
+	return cachekey.GetLatestOnlineTimeKey(userID)
+}
+
+func (s *userOnline) GetOnlineTime(ctx context.Context, userID string) (int64, error) {
+	timestampStr, err := s.rdb.Get(ctx, s.getUserLatestOnlineTimeKey(userID)).Result()
+	if err == redis.Nil {
+		return 0, nil
+	} else if err != nil {
+		return 0, errs.Wrap(err)
+	}
+	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		return 0, errs.Wrap(err)
+	}
+
+	return timestamp, nil
 }

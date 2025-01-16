@@ -114,3 +114,36 @@ func (o *FriendApi) GetIncrementalBlacks(c *gin.Context) {
 func (o *FriendApi) GetFullFriendUserIDs(c *gin.Context) {
 	a2r.Call(c, relation.FriendClient.GetFullFriendUserIDs, o.Client)
 }
+
+// OWLIM 的 新加接口
+func (o *FriendApi) GetFollowerIDs(c *gin.Context) {
+	a2r.Call(c, relation.FriendClient.GetFollowerIDs, o.Client)
+}
+
+func (o *FriendApi) GetSubscriberIDs(c *gin.Context) {
+	a2r.Call(c, relation.FriendClient.GetSubscriberIDs, o.Client)
+}
+
+func (o *FriendApi) SubscribeUser(c *gin.Context) {
+	a2r.Call(c, relation.FriendClient.SubscribeUser, o.Client)
+}
+
+func (o *FriendApi) UnsubscribeUser(c *gin.Context) {
+	a2r.Call(c, relation.FriendClient.UnsubscribeUser, o.Client)
+}
+
+func (o *FriendApi) FollowUser(c *gin.Context) {
+	a2r.Call(c, relation.FriendClient.FollowUser, o.Client)
+}
+
+func (o *FriendApi) UnfollowUser(c *gin.Context) {
+	a2r.Call(c, relation.FriendClient.UnfollowUser, o.Client)
+}
+
+func (o *FriendApi) BlockUser(c *gin.Context) {
+	a2r.Call(c, relation.FriendClient.BlockUser, o.Client)
+}
+
+func (o *FriendApi) UnblockUser(c *gin.Context) {
+	a2r.Call(c, relation.FriendClient.UnblockUser, o.Client)
+}

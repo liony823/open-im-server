@@ -102,3 +102,38 @@ func (s *userServer) GetAllOnlineUsers(ctx context.Context, req *pbuser.GetAllOn
 	}
 	return resp, nil
 }
+
+/* OWLIM 的 新加 */
+func (s *userServer) getUserOnlineTime(ctx context.Context, userID string) (*pbuser.OnlineTime, error) {
+	timestamp, err := s.online.GetOnlineTime(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := pbuser.OnlineTime{
+		UserID:    userID,
+		Timestamp: timestamp,
+	}
+
+	return &resp, nil
+}
+
+func (s *userServer) getUsersOnlineTime(ctx context.Context, userIDs []string) ([]*pbuser.OnlineTime, error) {
+	res := make([]*pbuser.OnlineTime, 0, len(userIDs))
+	for _, userID := range userIDs {
+		status, err := s.getUserOnlineTime(ctx, userID)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, status)
+	}
+	return res, nil
+}
+
+func (s *userServer) GetUsersTime(ctx context.Context, req *pbuser.GetUsersTimeReq) (*pbuser.GetUsersTimeResp, error) {
+	res, err := s.getUsersOnlineTime(ctx, req.UserIDs)
+	if err != nil {
+		return nil, err
+	}
+	return &pbuser.GetUsersTimeResp{TimeList: res}, nil
+}
