@@ -1,6 +1,6 @@
 address: [ redis:6379 ]
 username: 
-password: stealthX123
+password: owlIM123
 clusterMode: false
 db: 0
 maxRetry: 10
