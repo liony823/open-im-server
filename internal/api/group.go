@@ -77,6 +77,15 @@ func (o *GroupApi) GetGroupsInfo(c *gin.Context) {
 	//a2r.Call(c, group.GroupClient.GetGroupsInfo, o.Client, c, a2r.NewNilReplaceOption(group.GroupClient.GetGroupsInfo))
 }
 
+// @Summary		踢出群组成员
+// @Description	踢出群组成员
+// @Tags			group
+// @Id	kickGroupMember
+// @Accept			json
+// @Produce		json
+// @Param			data	body		group.KickGroupMemberReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=group.KickGroupMemberResp}
+// @Router			/group/kick_group [post]
 func (o *GroupApi) KickGroupMember(c *gin.Context) {
 	a2r.Call(c, group.GroupClient.KickGroupMember, o.Client)
 }
@@ -86,6 +95,15 @@ func (o *GroupApi) GetGroupMembersInfo(c *gin.Context) {
 	//a2r.Call(c, group.GroupClient.GetGroupMembersInfo, o.Client, c, a2r.NewNilReplaceOption(group.GroupClient.GetGroupMembersInfo))
 }
 
+// @Summary		获取群组成员列表
+// @Description	获取群组成员列表
+// @Tags			group
+// @Id	getGroupMemberList
+// @Accept			json
+// @Produce		json
+// @Param			data	body		group.GetGroupMemberListReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=group.GetGroupMemberListResp}
+// @Router			/group/get_group_member_list [post]
 func (o *GroupApi) GetGroupMemberList(c *gin.Context) {
 	a2r.Call(c, group.GroupClient.GetGroupMemberList, o.Client)
 }
@@ -98,6 +116,15 @@ func (o *GroupApi) GetJoinedGroupList(c *gin.Context) {
 	a2r.Call(c, group.GroupClient.GetJoinedGroupList, o.Client)
 }
 
+// @Summary		解散群组
+// @Description	解散群组
+// @Tags			group
+// @Id	dismissGroup
+// @Accept			json
+// @Produce		json
+// @Param			data	body		group.DismissGroupReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=group.DismissGroupResp}
+// @Router			/group/dismiss_group [post]
 func (o *GroupApi) DismissGroup(c *gin.Context) {
 	a2r.Call(c, group.GroupClient.DismissGroup, o.Client)
 }
@@ -110,10 +137,28 @@ func (o *GroupApi) CancelMuteGroupMember(c *gin.Context) {
 	a2r.Call(c, group.GroupClient.CancelMuteGroupMember, o.Client)
 }
 
+// @Summary		禁言群组
+// @Description	禁言群组
+// @Tags			group
+// @Id	muteGroup
+// @Accept			json
+// @Produce		json
+// @Param			data	body		group.MuteGroupReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=group.MuteGroupResp}
+// @Router			/group/mute_group [post]
 func (o *GroupApi) MuteGroup(c *gin.Context) {
 	a2r.Call(c, group.GroupClient.MuteGroup, o.Client)
 }
 
+// @Summary		取消禁言群组
+// @Description	取消禁言群组
+// @Tags			group
+// @Id	cancelMuteGroup
+// @Accept			json
+// @Produce		json
+// @Param			data	body		group.CancelMuteGroupReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=group.CancelMuteGroupResp}
+// @Router			/group/cancel_mute_group [post]
 func (o *GroupApi) CancelMuteGroup(c *gin.Context) {
 	a2r.Call(c, group.GroupClient.CancelMuteGroup, o.Client)
 }
@@ -134,10 +179,28 @@ func (o *GroupApi) GetGroupAbstractInfo(c *gin.Context) {
 //	a2r.Call(c, group.GroupClient.GetGroupAllMember, g.userClient)
 //}
 
+// @Summary		获取群组统计
+// @Description	获取群组统计
+// @Tags			statistics
+// @Id	groupCreateCount
+// @Accept			json
+// @Produce		json
+// @Param			data	body		group.GroupCreateCountReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=group.GroupCreateCountResp}
+// @Router			/statistics/group/create [post]
 func (o *GroupApi) GroupCreateCount(c *gin.Context) {
 	a2r.Call(c, group.GroupClient.GroupCreateCount, o.Client)
 }
 
+// @Summary		获取群组列表
+// @Description	获取群组列表
+// @Tags			group
+// @Id	getGroups
+// @Accept			json
+// @Produce		json
+// @Param			data	body		group.GetGroupsReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=group.GetGroupsResp}
+// @Router			/group/get_groups [post]
 func (o *GroupApi) GetGroups(c *gin.Context) {
 	a2r.Call(c, group.GroupClient.GetGroups, o.Client)
 }

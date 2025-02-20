@@ -65,11 +65,28 @@ func (u *UserApi) AccountCheck(c *gin.Context) {
 	a2r.Call(c, user.UserClient.AccountCheck, u.Client)
 }
 
+// @Summary		获取用户
+// @Description	获取用户列表
+// @Tags			user
+// @Id	getUsers
+// @Accept			json
+// @Produce		json
+// @Param			data	body		user.GetPaginationUsersReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=user.GetPaginationUsersResp}
+// @Router			/user/get_users [post]
 func (u *UserApi) GetUsers(c *gin.Context) {
 	a2r.Call(c, user.UserClient.GetPaginationUsers, u.Client)
 }
 
-// GetUsersOnlineStatus Get user online status.
+// @Summary		获取用户在线状态
+// @Description	获取用户在线状态
+// @Tags			user
+// @Id	getUsersOnlineStatus
+// @Accept			json
+// @Produce		json
+// @Param			data	body		msggateway.GetUsersOnlineStatusReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=[]msggateway.GetUsersOnlineStatusResp_SuccessResult}
+// @Router			/user/get_users_online_status [post]
 func (u *UserApi) GetUsersOnlineStatus(c *gin.Context) {
 	var req msggateway.GetUsersOnlineStatusReq
 	if err := c.BindJSON(&req); err != nil {
@@ -126,11 +143,28 @@ func (u *UserApi) GetUsersOnlineStatus(c *gin.Context) {
 	apiresp.GinSuccess(c, respResult)
 }
 
+// @Summary		用户注册统计
+// @Description	用户注册统计
+// @Tags			statistics
+// @Id	userRegisterCount
+// @Accept			json
+// @Produce		json
+// @Param			data	body		user.UserRegisterCountReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=user.UserRegisterCountResp}
+// @Router			/statistics/user/register [post]
 func (u *UserApi) UserRegisterCount(c *gin.Context) {
 	a2r.Call(c, user.UserClient.UserRegisterCount, u.Client)
 }
 
-// GetUsersOnlineTokenDetail Get user online token details.
+// @Summary		获取在线用户详情
+// @Description	获取在线用户详情
+// @Tags			user
+// @Id	getUsersOnlineTokenDetail
+// @Accept			json
+// @Produce		json
+// @Param			data	body		msggateway.GetUsersOnlineStatusReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=[]msggateway.SingleDetail}
+// @Router			/user/get_users_online_token_detail [post]
 func (u *UserApi) GetUsersOnlineTokenDetail(c *gin.Context) {
 	var wsResult []*msggateway.GetUsersOnlineStatusResp_SuccessResult
 	var respResult []*msggateway.SingleDetail

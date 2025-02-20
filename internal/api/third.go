@@ -16,12 +16,13 @@ package api
 
 import (
 	"context"
-	"google.golang.org/grpc"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"google.golang.org/grpc"
 
 	"github.com/gin-gonic/gin"
 	"github.com/openimsdk/protocol/third"
@@ -78,14 +79,41 @@ func setURLPrefix(c *gin.Context, urlPrefix *string) error {
 	return nil
 }
 
+// @Summary		获取分片范围
+// @Description	获取分片范围
+// @Tags			object
+// @Id	partLimit
+// @Accept			json
+// @Produce		json
+// @Param			data	body		third.PartLimitReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=third.PartLimitResp}
+// @Router			/object/part_limit [post]
 func (o *ThirdApi) PartLimit(c *gin.Context) {
 	a2r.Call(c, third.ThirdClient.PartLimit, o.Client)
 }
 
+// @Summary		获取分片大小
+// @Description	获取分片大小
+// @Tags			object
+// @Id	partSize
+// @Accept			json
+// @Produce		json
+// @Param			data	body		third.PartSizeReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=third.PartSizeResp}
+// @Router			/object/part_size [post]
 func (o *ThirdApi) PartSize(c *gin.Context) {
 	a2r.Call(c, third.ThirdClient.PartSize, o.Client)
 }
 
+// @Summary		初始化上传
+// @Description	初始化上传
+// @Tags			object
+// @Id	initiateMultipartUpload
+// @Accept			json
+// @Produce		json
+// @Param			data	body		third.InitiateMultipartUploadReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=third.InitiateMultipartUploadResp}
+// @Router			/object/initiate_multipart_upload [post]
 func (o *ThirdApi) InitiateMultipartUpload(c *gin.Context) {
 	opt := setURLPrefixOption(third.ThirdClient.InitiateMultipartUpload, func(req *third.InitiateMultipartUploadReq) error {
 		return setURLPrefix(c, &req.UrlPrefix)
@@ -93,10 +121,28 @@ func (o *ThirdApi) InitiateMultipartUpload(c *gin.Context) {
 	a2r.Call(c, third.ThirdClient.InitiateMultipartUpload, o.Client, opt)
 }
 
+// @Summary		安全签名
+// @Description	安全签名
+// @Tags			object
+// @Id	authSign
+// @Accept			json
+// @Produce		json
+// @Param			data	body		third.AuthSignReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=third.AuthSignResp}
+// @Router			/object/auth_sign [post]
 func (o *ThirdApi) AuthSign(c *gin.Context) {
 	a2r.Call(c, third.ThirdClient.AuthSign, o.Client)
 }
 
+// @Summary		完成上传
+// @Description	完成上传
+// @Tags			object
+// @Id	completeMultipartUpload
+// @Accept			json
+// @Produce		json
+// @Param			data	body		third.CompleteMultipartUploadReq	true	"请求参数"
+// @Success		200		{object}	apiresp.ApiResponse{data=third.CompleteMultipartUploadResp}
+// @Router			/object/complete_multipart_upload [post]
 func (o *ThirdApi) CompleteMultipartUpload(c *gin.Context) {
 	opt := setURLPrefixOption(third.ThirdClient.CompleteMultipartUpload, func(req *third.CompleteMultipartUploadReq) error {
 		return setURLPrefix(c, &req.UrlPrefix)

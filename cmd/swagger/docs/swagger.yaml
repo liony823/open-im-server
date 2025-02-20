@@ -1,0 +1,1026 @@
+basePath: /
+definitions:
+  apiresp.ApiResponse:
+    properties:
+      data: {}
+      errCode:
+        type: integer
+      errDlt:
+        type: string
+      errMsg:
+        type: string
+    type: object
+  group.CMSGroup:
+    properties:
+      groupInfo:
+        $ref: '#/definitions/sdkws.GroupInfo'
+      groupOwnerUserID:
+        type: string
+      groupOwnerUserName:
+        type: string
+    type: object
+  group.CancelMuteGroupReq:
+    properties:
+      groupID:
+        type: string
+    type: object
+  group.CancelMuteGroupResp:
+    type: object
+  group.DismissGroupReq:
+    properties:
+      deleteMember:
+        type: boolean
+      groupID:
+        type: string
+    type: object
+  group.DismissGroupResp:
+    type: object
+  group.GetGroupMemberListReq:
+    properties:
+      filter:
+        type: integer
+      groupID:
+        type: string
+      keyword:
+        type: string
+      pagination:
+        $ref: '#/definitions/sdkws.RequestPagination'
+    type: object
+  group.GetGroupMemberListResp:
+    properties:
+      members:
+        items:
+          $ref: '#/definitions/sdkws.GroupMemberFullInfo'
+        type: array
+      total:
+        type: integer
+    type: object
+  group.GetGroupsReq:
+    properties:
+      groupID:
+        type: string
+      groupName:
+        type: string
+      pagination:
+        $ref: '#/definitions/sdkws.RequestPagination'
+    type: object
+  group.GetGroupsResp:
+    properties:
+      groups:
+        items:
+          $ref: '#/definitions/group.CMSGroup'
+        type: array
+      total:
+        type: integer
+    type: object
+  group.GroupCreateCountReq:
+    properties:
+      end:
+        type: integer
+      start:
+        type: integer
+    type: object
+  group.GroupCreateCountResp:
+    properties:
+      before:
+        type: integer
+      count:
+        additionalProperties:
+          type: integer
+        type: object
+      total:
+        type: integer
+    type: object
+  group.KickGroupMemberReq:
+    properties:
+      groupID:
+        type: string
+      kickedUserIDs:
+        items:
+          type: string
+        type: array
+      reason:
+        type: string
+    type: object
+  group.KickGroupMemberResp:
+    type: object
+  group.MuteGroupReq:
+    properties:
+      groupID:
+        type: string
+    type: object
+  group.MuteGroupResp:
+    type: object
+  msg.ActiveGroup:
+    properties:
+      count:
+        type: integer
+      group:
+        $ref: '#/definitions/sdkws.GroupInfo'
+    type: object
+  msg.ActiveUser:
+    properties:
+      count:
+        type: integer
+      user:
+        $ref: '#/definitions/sdkws.UserInfo'
+    type: object
+  msg.GetActiveGroupReq:
+    properties:
+      ase:
+        type: boolean
+      end:
+        type: integer
+      pagination:
+        $ref: '#/definitions/sdkws.RequestPagination'
+      start:
+        type: integer
+    type: object
+  msg.GetActiveGroupResp:
+    properties:
+      dateCount:
+        additionalProperties:
+          type: integer
+        type: object
+      groupCount:
+        type: integer
+      groups:
+        items:
+          $ref: '#/definitions/msg.ActiveGroup'
+        type: array
+      msgCount:
+        type: integer
+    type: object
+  msg.GetActiveUserReq:
+    properties:
+      ase:
+        type: boolean
+      end:
+        type: integer
+      group:
+        type: boolean
+      pagination:
+        $ref: '#/definitions/sdkws.RequestPagination'
+      start:
+        type: integer
+    type: object
+  msg.GetActiveUserResp:
+    properties:
+      dateCount:
+        additionalProperties:
+          type: integer
+        type: object
+      msgCount:
+        type: integer
+      userCount:
+        type: integer
+      users:
+        items:
+          $ref: '#/definitions/msg.ActiveUser'
+        type: array
+    type: object
+  msggateway.GetUsersOnlineStatusReq:
+    properties:
+      userIDs:
+        items:
+          type: string
+        type: array
+    type: object
+  msggateway.GetUsersOnlineStatusResp_SuccessDetail:
+    properties:
+      connID:
+        type: string
+      isBackground:
+        type: boolean
+      platformID:
+        type: integer
+      token:
+        type: string
+    type: object
+  msggateway.GetUsersOnlineStatusResp_SuccessResult:
+    properties:
+      detailPlatformStatus:
+        items:
+          $ref: '#/definitions/msggateway.GetUsersOnlineStatusResp_SuccessDetail'
+        type: array
+      status:
+        type: integer
+      userID:
+        type: string
+    type: object
+  msggateway.SingleDetail:
+    properties:
+      singlePlatformToken:
+        items:
+          $ref: '#/definitions/msggateway.SinglePlatformToken'
+        type: array
+      status:
+        type: integer
+      userID:
+        type: string
+    type: object
+  msggateway.SinglePlatformToken:
+    properties:
+      platformID:
+        type: integer
+      token:
+        items:
+          type: string
+        type: array
+      total:
+        type: integer
+    type: object
+  sdkws.GroupInfo:
+    properties:
+      applyMemberFriend:
+        type: integer
+      createTime:
+        type: integer
+      creatorUserID:
+        type: string
+      ex:
+        type: string
+      faceURL:
+        type: string
+      groupID:
+        type: string
+      groupName:
+        type: string
+      groupType:
+        type: integer
+      introduction:
+        type: string
+      lookMemberInfo:
+        type: integer
+      memberCount:
+        type: integer
+      needVerification:
+        type: integer
+      notification:
+        type: string
+      notificationUpdateTime:
+        type: integer
+      notificationUserID:
+        type: string
+      ownerUserID:
+        type: string
+      status:
+        type: integer
+    type: object
+  sdkws.GroupMemberFullInfo:
+    properties:
+      appMangerLevel:
+        description: if >0
+        type: integer
+      ex:
+        type: string
+      faceURL:
+        type: string
+      groupID:
+        type: string
+      inviterUserID:
+        type: string
+      joinSource:
+        type: integer
+      joinTime:
+        type: integer
+      muteEndTime:
+        type: integer
+      nickname:
+        type: string
+      operatorUserID:
+        type: string
+      roleLevel:
+        type: integer
+      userID:
+        type: string
+    type: object
+  sdkws.RequestPagination:
+    properties:
+      pageNumber:
+        type: integer
+      showNumber:
+        type: integer
+    type: object
+  sdkws.UserInfo:
+    properties:
+      appMangerLevel:
+        type: integer
+      createTime:
+        type: integer
+      ex:
+        type: string
+      faceURL:
+        type: string
+      globalRecvMsgOpt:
+        type: integer
+      nickname:
+        type: string
+      userID:
+        type: string
+    type: object
+  third.AuthSignParts:
+    properties:
+      header:
+        items:
+          $ref: '#/definitions/third.KeyValues'
+        type: array
+      parts:
+        items:
+          $ref: '#/definitions/third.SignPart'
+        type: array
+      query:
+        items:
+          $ref: '#/definitions/third.KeyValues'
+        type: array
+      url:
+        type: string
+    type: object
+  third.AuthSignReq:
+    properties:
+      partNumbers:
+        items:
+          type: integer
+        type: array
+      uploadID:
+        type: string
+    type: object
+  third.AuthSignResp:
+    properties:
+      header:
+        items:
+          $ref: '#/definitions/third.KeyValues'
+        type: array
+      parts:
+        items:
+          $ref: '#/definitions/third.SignPart'
+        type: array
+      query:
+        items:
+          $ref: '#/definitions/third.KeyValues'
+        type: array
+      url:
+        type: string
+    type: object
+  third.CompleteMultipartUploadReq:
+    properties:
+      cause:
+        type: string
+      contentType:
+        type: string
+      name:
+        type: string
+      parts:
+        items:
+          type: string
+        type: array
+      uploadID:
+        type: string
+      urlPrefix:
+        type: string
+    type: object
+  third.CompleteMultipartUploadResp:
+    properties:
+      url:
+        type: string
+    type: object
+  third.InitiateMultipartUploadReq:
+    properties:
+      cause:
+        type: string
+      contentType:
+        type: string
+      hash:
+        type: string
+      maxParts:
+        type: integer
+      name:
+        type: string
+      partSize:
+        type: integer
+      size:
+        type: integer
+      urlPrefix:
+        type: string
+    type: object
+  third.InitiateMultipartUploadResp:
+    properties:
+      upload:
+        $ref: '#/definitions/third.UploadInfo'
+      url:
+        type: string
+    type: object
+  third.KeyValues:
+    properties:
+      key:
+        type: string
+      values:
+        items:
+          type: string
+        type: array
+    type: object
+  third.PartLimitReq:
+    type: object
+  third.PartLimitResp:
+    properties:
+      maxNumSize:
+        type: integer
+      maxPartSize:
+        type: integer
+      minPartSize:
+        type: integer
+    type: object
+  third.PartSizeReq:
+    properties:
+      size:
+        type: integer
+    type: object
+  third.PartSizeResp:
+    properties:
+      size:
+        type: integer
+    type: object
+  third.SignPart:
+    properties:
+      header:
+        items:
+          $ref: '#/definitions/third.KeyValues'
+        type: array
+      partNumber:
+        type: integer
+      query:
+        items:
+          $ref: '#/definitions/third.KeyValues'
+        type: array
+      url:
+        type: string
+    type: object
+  third.UploadInfo:
+    properties:
+      expireTime:
+        type: integer
+      partSize:
+        type: integer
+      sign:
+        $ref: '#/definitions/third.AuthSignParts'
+      uploadID:
+        type: string
+    type: object
+  user.GetPaginationUsersReq:
+    properties:
+      nickName:
+        type: string
+      pagination:
+        $ref: '#/definitions/sdkws.RequestPagination'
+      userID:
+        type: string
+    type: object
+  user.GetPaginationUsersResp:
+    properties:
+      total:
+        type: integer
+      users:
+        items:
+          $ref: '#/definitions/sdkws.UserInfo'
+        type: array
+    type: object
+  user.UserRegisterCountReq:
+    properties:
+      end:
+        type: integer
+      start:
+        type: integer
+    type: object
+  user.UserRegisterCountResp:
+    properties:
+      before:
+        type: integer
+      count:
+        additionalProperties:
+          type: integer
+        type: object
+      total:
+        type: integer
+    type: object
+host: localhost:10002
+info:
+  contact:
+    email: ilovecoding@foxmail.com
+    name: 飞宏IM技术支持
+    url: https://github.com/liony823/chat
+  description: 飞宏IM接口
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: 飞宏IM接口
+  version: 1.0.0
+paths:
+  /group/cancel_mute_group:
+    post:
+      consumes:
+      - application/json
+      description: 取消禁言群组
+      operationId: cancelMuteGroup
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/group.CancelMuteGroupReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/group.CancelMuteGroupResp'
+              type: object
+      summary: 取消禁言群组
+      tags:
+      - group
+  /group/dismiss_group:
+    post:
+      consumes:
+      - application/json
+      description: 解散群组
+      operationId: dismissGroup
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/group.DismissGroupReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/group.DismissGroupResp'
+              type: object
+      summary: 解散群组
+      tags:
+      - group
+  /group/get_group_member_list:
+    post:
+      consumes:
+      - application/json
+      description: 获取群组成员列表
+      operationId: getGroupMemberList
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/group.GetGroupMemberListReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/group.GetGroupMemberListResp'
+              type: object
+      summary: 获取群组成员列表
+      tags:
+      - group
+  /group/get_groups:
+    post:
+      consumes:
+      - application/json
+      description: 获取群组列表
+      operationId: getGroups
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/group.GetGroupsReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/group.GetGroupsResp'
+              type: object
+      summary: 获取群组列表
+      tags:
+      - group
+  /group/kick_group:
+    post:
+      consumes:
+      - application/json
+      description: 踢出群组成员
+      operationId: kickGroupMember
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/group.KickGroupMemberReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/group.KickGroupMemberResp'
+              type: object
+      summary: 踢出群组成员
+      tags:
+      - group
+  /group/mute_group:
+    post:
+      consumes:
+      - application/json
+      description: 禁言群组
+      operationId: muteGroup
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/group.MuteGroupReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/group.MuteGroupResp'
+              type: object
+      summary: 禁言群组
+      tags:
+      - group
+  /object/auth_sign:
+    post:
+      consumes:
+      - application/json
+      description: 安全签名
+      operationId: authSign
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/third.AuthSignReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/third.AuthSignResp'
+              type: object
+      summary: 安全签名
+      tags:
+      - object
+  /object/complete_multipart_upload:
+    post:
+      consumes:
+      - application/json
+      description: 完成上传
+      operationId: completeMultipartUpload
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/third.CompleteMultipartUploadReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/third.CompleteMultipartUploadResp'
+              type: object
+      summary: 完成上传
+      tags:
+      - object
+  /object/initiate_multipart_upload:
+    post:
+      consumes:
+      - application/json
+      description: 初始化上传
+      operationId: initiateMultipartUpload
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/third.InitiateMultipartUploadReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/third.InitiateMultipartUploadResp'
+              type: object
+      summary: 初始化上传
+      tags:
+      - object
+  /object/part_limit:
+    post:
+      consumes:
+      - application/json
+      description: 获取分片范围
+      operationId: partLimit
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/third.PartLimitReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/third.PartLimitResp'
+              type: object
+      summary: 获取分片范围
+      tags:
+      - object
+  /object/part_size:
+    post:
+      consumes:
+      - application/json
+      description: 获取分片大小
+      operationId: partSize
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/third.PartSizeReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/third.PartSizeResp'
+              type: object
+      summary: 获取分片大小
+      tags:
+      - object
+  /statistics/group/active:
+    post:
+      consumes:
+      - application/json
+      description: 获取活跃群
+      operationId: getActiveGroup
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/msg.GetActiveGroupReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/msg.GetActiveGroupResp'
+              type: object
+      summary: 获取活跃群
+      tags:
+      - statistics
+  /statistics/group/create:
+    post:
+      consumes:
+      - application/json
+      description: 获取群组统计
+      operationId: groupCreateCount
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/group.GroupCreateCountReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/group.GroupCreateCountResp'
+              type: object
+      summary: 获取群组统计
+      tags:
+      - statistics
+  /statistics/user/active:
+    post:
+      consumes:
+      - application/json
+      description: 获取活跃用户
+      operationId: getActiveUser
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/msg.GetActiveUserReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/msg.GetActiveUserResp'
+              type: object
+      summary: 获取活跃用户
+      tags:
+      - statistics
+  /statistics/user/register:
+    post:
+      consumes:
+      - application/json
+      description: 用户注册统计
+      operationId: userRegisterCount
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/user.UserRegisterCountReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/user.UserRegisterCountResp'
+              type: object
+      summary: 用户注册统计
+      tags:
+      - statistics
+  /user/get_users:
+    post:
+      consumes:
+      - application/json
+      description: 获取用户列表
+      operationId: getUsers
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/user.GetPaginationUsersReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/user.GetPaginationUsersResp'
+              type: object
+      summary: 获取用户
+      tags:
+      - user
+  /user/get_users_online_status:
+    post:
+      consumes:
+      - application/json
+      description: 获取用户在线状态
+      operationId: getUsersOnlineStatus
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/msggateway.GetUsersOnlineStatusReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/msggateway.GetUsersOnlineStatusResp_SuccessResult'
+                  type: array
+              type: object
+      summary: 获取用户在线状态
+      tags:
+      - user
+  /user/get_users_online_token_detail:
+    post:
+      consumes:
+      - application/json
+      description: 获取在线用户详情
+      operationId: getUsersOnlineTokenDetail
+      parameters:
+      - description: 请求参数
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/msggateway.GetUsersOnlineStatusReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/apiresp.ApiResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/msggateway.SingleDetail'
+                  type: array
+              type: object
+      summary: 获取在线用户详情
+      tags:
+      - user
+swagger: "2.0"

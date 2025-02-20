@@ -15,10 +15,25 @@
 package main
 
 import (
+	_ "net/http/pprof"
+
 	"github.com/openimsdk/open-im-server/v3/pkg/common/cmd"
 	"github.com/openimsdk/tools/system/program"
-	_ "net/http/pprof"
 )
+
+// @title          飞宏IM接口
+// @version        1.0.0
+// @description    飞宏IM接口
+
+// @contact.name   飞宏IM技术支持
+// @contact.url    https://github.com/liony823/chat
+// @contact.email  ilovecoding@foxmail.com
+
+// @license.name   Apache 2.0
+// @license.url    http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:10002
+// @BasePath  /
 
 func main() {
 	if err := cmd.NewApiCmd().Exec(); err != nil {
