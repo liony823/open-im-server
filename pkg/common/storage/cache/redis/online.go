@@ -165,3 +165,7 @@ func (s *userOnline) GetOnlineTime(ctx context.Context, userID string) (int64, e
 
 	return timestamp, nil
 }
+
+func (s *userOnline) DelOnlineTime(ctx context.Context, userID string) error {
+	return s.rdb.Del(ctx, s.getUserLatestOnlineTimeKey(userID)).Err()
+}

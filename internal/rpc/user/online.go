@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/openimsdk/tools/utils/datautil"
 
@@ -108,6 +109,29 @@ func (s *userServer) getUserOnlineTime(ctx context.Context, userID string) (*pbu
 	timestamp, err := s.online.GetOnlineTime(ctx, userID)
 	if err != nil {
 		return nil, err
+	}
+
+	user, err := s.db.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if user.Ex != "" {
+		exBytes, err := json.Marshal(user.Ex)
+		if err != nil {
+			return nil, err
+		}
+		var exMap map[string]interface{}
+		if err := json.Unmarshal(exBytes, &exMap); err != nil {
+			return nil, err
+		}
+		if showStatus, exists := exMap["showOnlineStatus"]; exists {
+			if status, ok := showStatus.(float64); ok && status == 0 {
+				timestamp = 0
+			} else if status, ok := showStatus.(bool); ok && !status {
+				timestamp = 0
+			}
+		}
 	}
 
 	resp := pbuser.OnlineTime{

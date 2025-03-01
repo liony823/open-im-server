@@ -9,4 +9,5 @@ type OnlineCache interface {
 
 	// OWLIM 的 新加
 	GetOnlineTime(ctx context.Context, userID string) (int64, error)
+	DelOnlineTime(ctx context.Context, userID string) error
 }
