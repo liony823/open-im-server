@@ -117,19 +117,30 @@ func (s *userServer) getUserOnlineTime(ctx context.Context, userID string) (*pbu
 	}
 
 	if user.Ex != "" {
-		exBytes, err := json.Marshal(user.Ex)
-		if err != nil {
-			return nil, err
-		}
 		var exMap map[string]interface{}
-		if err := json.Unmarshal(exBytes, &exMap); err != nil {
+
+		// 尝试直接解析 Ex 字段
+		if err := json.Unmarshal([]byte(user.Ex), &exMap); err != nil {
+			// 如果 Ex 不是有效的 JSON 字符串，则返回错误
 			return nil, err
 		}
+
+		// 检查 showOnlineStatus 字段
 		if showStatus, exists := exMap["showOnlineStatus"]; exists {
-			if status, ok := showStatus.(float64); ok && status == 0 {
-				timestamp = 0
-			} else if status, ok := showStatus.(bool); ok && !status {
-				timestamp = 0
+			switch v := showStatus.(type) {
+			case float64:
+				if v == 0 {
+					timestamp = 0
+				}
+			case bool:
+				if !v {
+					timestamp = 0
+				}
+			case string:
+				// 处理可能的字符串类型值
+				if v == "0" || v == "false" {
+					timestamp = 0
+				}
 			}
 		}
 	}
