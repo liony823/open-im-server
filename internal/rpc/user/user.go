@@ -23,32 +23,34 @@ import (
 	"time"
 
 	"github.com/openimsdk/open-im-server/v3/internal/rpc/relation"
+	"github.com/openimsdk/open-im-server/v3/pkg/authverify"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
+	"github.com/openimsdk/open-im-server/v3/pkg/common/convert"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/prommetrics"
+	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache/redis"
+	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/controller"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/database/mgo"
 	tablerelation "github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/webhook"
+	"github.com/openimsdk/open-im-server/v3/pkg/dbbuild"
 	"github.com/openimsdk/open-im-server/v3/pkg/localcache"
 	"github.com/openimsdk/open-im-server/v3/pkg/rpcli"
+	"github.com/openimsdk/protocol/constant"
 	"github.com/openimsdk/protocol/group"
 	friendpb "github.com/openimsdk/protocol/relation"
-	"github.com/openimsdk/tools/db/redisutil"
-
-	"github.com/openimsdk/open-im-server/v3/pkg/authverify"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/convert"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/controller"
-	"github.com/openimsdk/protocol/constant"
 	"github.com/openimsdk/protocol/sdkws"
 	pbuser "github.com/openimsdk/protocol/user"
-	"github.com/openimsdk/tools/db/mongoutil"
 	"github.com/openimsdk/tools/db/pagination"
-	registry "github.com/openimsdk/tools/discovery"
+	"github.com/openimsdk/tools/discovery"
 	"github.com/openimsdk/tools/errs"
 	"github.com/openimsdk/tools/utils/datautil"
 	"google.golang.org/grpc"
+)
+
+const (
+	defaultSecret = "openIM123"
 )
 
 type userServer struct {
@@ -57,7 +59,7 @@ type userServer struct {
 	db                       controller.UserDatabase
 	friendNotificationSender *relation.FriendNotificationSender
 	userNotificationSender   *UserNotificationSender
-	RegisterCenter           registry.SvcDiscoveryRegistry
+	RegisterCenter           discovery.Conn
 	config                   *Config
 	webhookClient            *webhook.Client
 	groupClient              *rpcli.GroupClient
@@ -76,19 +78,21 @@ type Config struct {
 	Discovery          config.Discovery
 }
 
-func Start(ctx context.Context, config *Config, client registry.SvcDiscoveryRegistry, server *grpc.Server) error {
-	mgocli, err := mongoutil.NewMongoDB(ctx, config.MongodbConfig.Build())
+func Start(ctx context.Context, config *Config, client discovery.Conn, server grpc.ServiceRegistrar) error {
+	dbb := dbbuild.NewBuilder(&config.MongodbConfig, &config.RedisConfig)
+	mgocli, err := dbb.Mongo(ctx)
 	if err != nil {
 		return err
 	}
-	rdb, err := redisutil.NewRedisClient(ctx, config.RedisConfig.Build())
+	rdb, err := dbb.Redis(ctx)
 	if err != nil {
 		return err
 	}
+
 	users := make([]*tablerelation.User, 0)
 
 	for _, v := range config.Share.IMAdminUserID {
-		users = append(users, &tablerelation.User{UserID: v, Nickname: v, AppMangerLevel: constant.AppNotificationAdmin})
+		users = append(users, &tablerelation.User{UserID: v, Nickname: v, AppMangerLevel: constant.AppAdmin})
 	}
 	userDB, err := mgo.NewUserMongo(mgocli.GetDB())
 	if err != nil {
@@ -272,6 +276,10 @@ func (s *userServer) UserRegister(ctx context.Context, req *pbuser.UserRegisterR
 	resp = &pbuser.UserRegisterResp{}
 	if len(req.Users) == 0 {
 		return nil, errs.ErrArgs.WrapMsg("users is empty")
+	}
+	// check if secret is changed
+	if s.config.Share.Secret == defaultSecret {
+		return nil, servererrs.ErrSecretNotChanged.Wrap()
 	}
 
 	if err = authverify.CheckAdmin(ctx, s.config.Share.IMAdminUserID); err != nil {
@@ -566,7 +574,7 @@ func (s *userServer) SearchNotificationAccount(ctx context.Context, req *pbuser.
 		}
 
 		// Convert users to response format
-		resp := s.userModelToResp(users, req.Pagination)
+		resp := s.userModelToResp(users, req.Pagination, req.AppManagerLevel)
 		if resp.Total != 0 {
 			return resp, nil
 		}
@@ -576,17 +584,24 @@ func (s *userServer) SearchNotificationAccount(ctx context.Context, req *pbuser.
 		if err != nil {
 			return nil, err
 		}
-		resp = s.userModelToResp(users, req.Pagination)
+		resp = s.userModelToResp(users, req.Pagination, req.AppManagerLevel)
 		return resp, nil
 	}
 
 	// If no keyword, find users with notification settings
-	users, err = s.db.FindNotification(ctx, constant.AppNotificationAdmin)
-	if err != nil {
-		return nil, err
+	if req.AppManagerLevel != nil {
+		users, err = s.db.FindNotification(ctx, int64(*req.AppManagerLevel))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		users, err = s.db.FindSystemAccount(ctx)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	resp := s.userModelToResp(users, req.Pagination)
+	resp := s.userModelToResp(users, req.Pagination, req.AppManagerLevel)
 	return resp, nil
 }
 
@@ -598,7 +613,7 @@ func (s *userServer) GetNotificationAccount(ctx context.Context, req *pbuser.Get
 	if err != nil {
 		return nil, servererrs.ErrUserIDNotFound.Wrap()
 	}
-	if user.AppMangerLevel == constant.AppAdmin || user.AppMangerLevel >= constant.AppNotificationAdmin {
+	if user.AppMangerLevel >= constant.AppAdmin {
 		return &pbuser.GetNotificationAccountResp{Account: &pbuser.NotificationAccountInfo{
 			UserID:         user.UserID,
 			FaceURL:        user.FaceURL,
@@ -625,11 +640,16 @@ func (s *userServer) genUserID() string {
 	return string(data)
 }
 
-func (s *userServer) userModelToResp(users []*tablerelation.User, pagination pagination.Pagination) *pbuser.SearchNotificationAccountResp {
+func (s *userServer) userModelToResp(users []*tablerelation.User, pagination pagination.Pagination, appManagerLevel *int32) *pbuser.SearchNotificationAccountResp {
 	accounts := make([]*pbuser.NotificationAccountInfo, 0)
 	var total int64
 	for _, v := range users {
 		if v.AppMangerLevel >= constant.AppNotificationAdmin && !datautil.Contain(v.UserID, s.config.Share.IMAdminUserID...) {
+			if appManagerLevel != nil {
+				if v.AppMangerLevel != *appManagerLevel {
+					continue
+				}
+			}
 			temp := &pbuser.NotificationAccountInfo{
 				UserID:         v.UserID,
 				FaceURL:        v.FaceURL,

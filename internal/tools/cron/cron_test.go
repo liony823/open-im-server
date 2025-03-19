@@ -1,4 +1,4 @@
-package tools
+package cron
 
 import (
 	"context"
@@ -24,7 +24,7 @@ func TestName(t *testing.T) {
 			Address:       []string{"localhost:12379"},
 		},
 	}
-	client, err := kdisc.NewDiscoveryRegister(conf, "source")
+	client, err := kdisc.NewDiscoveryRegister(conf, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -46,7 +46,7 @@ func TestName(t *testing.T) {
 
 	srv := &cronServer{
 		ctx: ctx,
-		config: &CronTaskConfig{
+		config: &Config{
 			CronTask: config.CronTask{
 				RetainChatRecords: 1,
 				FileExpireTime:    1,
