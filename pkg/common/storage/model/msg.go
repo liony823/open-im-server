@@ -15,9 +15,10 @@
 package model
 
 import (
+	"strconv"
+
 	"github.com/openimsdk/protocol/sdkws"
 	"github.com/openimsdk/tools/errs"
-	"strconv"
 )
 
 const (
@@ -40,6 +41,15 @@ type RevokeModel struct {
 	UserID   string `bson:"user_id"`
 	Nickname string `bson:"nickname"`
 	Time     int64  `bson:"time"`
+}
+
+type EditModel struct {
+	Role        int32  `bson:"role"`
+	UserID      string `bson:"user_id"`
+	Nickname    string `bson:"nickname"`
+	Time        int64  `bson:"time"`
+	NewContent  string `bson:"new_content"`
+	ContentType int32  `bson:"content_type"`
 }
 
 type OfflinePushModel struct {
@@ -78,6 +88,7 @@ type MsgDataModel struct {
 type MsgInfoModel struct {
 	Msg     *MsgDataModel `bson:"msg"`
 	Revoke  *RevokeModel  `bson:"revoke"`
+	Edit    *EditModel    `bson:"edit"`
 	DelList []string      `bson:"del_list"`
 	IsRead  bool          `bson:"is_read"`
 }
@@ -108,6 +119,10 @@ func (m *MsgDocModel) IsFull() bool {
 	return m.Msg[len(m.Msg)-1].Msg != nil
 }
 
+func (m *MsgDocModel) GetDocIndex(seq int64) int64 {
+	return (seq - 1) / singleGocMsgNum
+}
+
 func (m *MsgDocModel) GetDocID(conversationID string, seq int64) string {
 	seqSuffix := (seq - 1) / singleGocMsgNum
 	return m.indexGen(conversationID, seqSuffix)
@@ -115,15 +130,11 @@ func (m *MsgDocModel) GetDocID(conversationID string, seq int64) string {
 
 func (m *MsgDocModel) GetDocIDSeqsMap(conversationID string, seqs []int64) map[string][]int64 {
 	t := make(map[string][]int64)
-	for i := 0; i < len(seqs); i++ {
-		docID := m.GetDocID(conversationID, seqs[i])
-		if value, ok := t[docID]; !ok {
-			var temp []int64
-			t[docID] = append(temp, seqs[i])
-		} else {
-			t[docID] = append(value, seqs[i])
-		}
+	for _, seq := range seqs {
+		docID := m.GetDocID(conversationID, seq)
+		t[docID] = append(t[docID], seq)
 	}
+
 	return t
 }
 
@@ -131,8 +142,16 @@ func (*MsgDocModel) GetMsgIndex(seq int64) int64 {
 	return (seq - 1) % singleGocMsgNum
 }
 
+func (*MsgDocModel) GetLimitForSingleDoc(seq int64) int64 {
+	return seq % singleGocMsgNum
+}
+
 func (*MsgDocModel) indexGen(conversationID string, seqSuffix int64) string {
 	return conversationID + ":" + strconv.FormatInt(seqSuffix, 10)
+}
+
+func (*MsgDocModel) BuildDocIDByIndex(conversationID string, index int64) string {
+	return conversationID + ":" + strconv.FormatInt(index, 10)
 }
 
 func (*MsgDocModel) GenExceptionMessageBySeqs(seqs []int64) (exceptionMsg []*sdkws.MsgData) {

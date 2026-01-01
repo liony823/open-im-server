@@ -15,17 +15,20 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/database/mgo"
 	"github.com/openimsdk/tools/db/mongoutil"
 	"github.com/openimsdk/tools/db/redisutil"
 	"github.com/openimsdk/tools/utils/runtimeenv"
 	"github.com/redis/go-redis/v9"
+	"github.com/spf13/viper"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"gopkg.in/yaml.v3"
 )
+
+const StructTagName = "yaml"
 
 const (
 	MaxSeq                 = "MAX_SEQ:"
@@ -42,18 +45,25 @@ const (
 )
 
 func readConfig[T any](dir string, name string) (*T, error) {
-	if runtimeenv.PrintRuntimeEnvironment() == config.KUBERNETES {
+	if runtimeenv.RuntimeEnvironment() == config.KUBERNETES {
 		dir = os.Getenv(config.MountConfigFilePath)
 	}
+	v := viper.New()
+	v.SetEnvPrefix(config.EnvPrefixMap[name])
+	v.AutomaticEnv()
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.SetConfigFile(filepath.Join(dir, name))
+	if err := v.ReadInConfig(); err != nil {
+		return nil, err
+	}
 
-	data, err := os.ReadFile(filepath.Join(dir, name))
-	if err != nil {
-		return nil, err
-	}
 	var conf T
-	if err := yaml.Unmarshal(data, &conf); err != nil {
+	if err := v.Unmarshal(&conf, func(config *mapstructure.DecoderConfig) {
+		config.TagName = StructTagName
+	}); err != nil {
 		return nil, err
 	}
+
 	return &conf, nil
 }
 
@@ -62,6 +72,7 @@ func Main(conf string, del time.Duration) error {
 	if err != nil {
 		return err
 	}
+	
 	mongodbConfig, err := readConfig[config.Mongo](conf, config.MongodbConfigFileName)
 	if err != nil {
 		return err
@@ -330,7 +341,7 @@ func SetVersion(coll *mongo.Collection, key string, version int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	option := options.Update().SetUpsert(true)
-	filter := bson.M{"key": key, "value": strconv.Itoa(version)}
+	filter := bson.M{"key": key}
 	update := bson.M{"$set": bson.M{"key": key, "value": strconv.Itoa(version)}}
 	return mongoutil.UpdateOne(ctx, coll, filter, update, false, option)
 }

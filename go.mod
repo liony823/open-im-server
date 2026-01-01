@@ -12,8 +12,8 @@ require (
 	github.com/gorilla/websocket v1.5.1
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/openimsdk/protocol v0.0.72-alpha.71
-	github.com/openimsdk/tools v0.0.50-alpha.65
+	github.com/openimsdk/protocol v0.0.73-alpha.14
+	github.com/openimsdk/tools v0.0.50-alpha.97
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.18.0
 	github.com/stretchr/testify v1.9.0
@@ -26,12 +26,9 @@ require (
 
 require github.com/google/uuid v1.6.0
 
-replace github.com/openimsdk/protocol => github.com/liony823/protocol v0.0.1-owl-fix
-
-replace github.com/openimsdk/tools => github.com/liony823/tools v0.0.1-owl
+replace github.com/openimsdk/protocol => github.com/liony823/protocol v0.0.4-stealthx
 
 require (
-	github.com/IBM/sarama v1.43.0
 	github.com/fatih/color v1.14.1
 	github.com/gin-contrib/gzip v1.0.1
 	github.com/go-redis/redis v6.15.9+incompatible
@@ -39,7 +36,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/kelindar/bitmap v1.5.2
 	github.com/likexian/gokit v0.25.13
-	github.com/openimsdk/gomake v0.0.15-alpha.2
+	github.com/openimsdk/gomake v0.0.15-alpha.11
 	github.com/redis/go-redis/v9 v9.4.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil v3.21.11+incompatible
@@ -59,6 +56,7 @@ require (
 	cloud.google.com/go/iam v1.1.7 // indirect
 	cloud.google.com/go/longrunning v0.5.5 // indirect
 	cloud.google.com/go/storage v1.40.0 // indirect
+	github.com/IBM/sarama v1.43.0 // indirect
 	github.com/MicahParks/keyfunc v1.9.0 // indirect
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible // indirect
 	github.com/aws/aws-sdk-go-v2 v1.32.5 // indirect

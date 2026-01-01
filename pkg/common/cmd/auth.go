@@ -38,7 +38,9 @@ func NewAuthRpcCmd() *AuthRpcCmd {
 	ret.configMap = map[string]any{
 		config.OpenIMRPCAuthCfgFileName: &authConfig.RpcConfig,
 		config.RedisConfigFileName:      &authConfig.RedisConfig,
+		config.MongodbConfigFileName:    &authConfig.MongoConfig,
 		config.ShareFileName:            &authConfig.Share,
+		config.LocalCacheConfigFileName: &authConfig.LocalCacheConfig,
 		config.DiscoveryConfigFilename:  &authConfig.Discovery,
 	}
 	ret.RootCmd = NewRootCmd(program.GetProcessName(), WithConfigMap(ret.configMap))

@@ -18,7 +18,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+
+	"github.com/openimsdk/tools/mq"
 	"github.com/openimsdk/tools/utils/jsonutil"
+	"google.golang.org/protobuf/proto"
+
 	"strconv"
 	"strings"
 	"time"
@@ -29,7 +33,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/convert"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache"
 	"github.com/openimsdk/protocol/constant"
@@ -37,19 +40,21 @@ import (
 	"github.com/openimsdk/protocol/sdkws"
 	"github.com/openimsdk/tools/errs"
 	"github.com/openimsdk/tools/log"
-	"github.com/openimsdk/tools/mq/kafka"
 	"github.com/openimsdk/tools/utils/datautil"
 )
 
 const (
 	updateKeyMsg = iota
 	updateKeyRevoke
+	updateKeyEdit
 )
 
 // CommonMsgDatabase defines the interface for message database operations.
 type CommonMsgDatabase interface {
 	// RevokeMsg revokes a message in a conversation.
 	RevokeMsg(ctx context.Context, conversationID string, seq int64, revoke *model.RevokeModel) error
+	// EditMsg edits a message in a conversation.
+	EditMsg(ctx context.Context, conversationID string, seq int64, edit *model.EditModel) error
 	// MarkSingleChatMsgsAsRead marks messages as read for a single chat by sequence numbers.
 	MarkSingleChatMsgsAsRead(ctx context.Context, userID string, conversationID string, seqs []int64) error
 	// GetMsgBySeqsRange retrieves messages from MongoDB by a range of sequence numbers.
@@ -101,22 +106,14 @@ type CommonMsgDatabase interface {
 	GetLastMessage(ctx context.Context, conversationIDS []string, userID string) (map[string]*sdkws.MsgData, error)
 }
 
-func NewCommonMsgDatabase(msgDocModel database.Msg, msg cache.MsgCache, seqUser cache.SeqUser, seqConversation cache.SeqConversationCache, kafkaConf *config.Kafka) (CommonMsgDatabase, error) {
-	conf, err := kafka.BuildProducerConfig(*kafkaConf.Build())
-	if err != nil {
-		return nil, err
-	}
-	producerToRedis, err := kafka.NewKafkaProducer(conf, kafkaConf.Address, kafkaConf.ToRedisTopic)
-	if err != nil {
-		return nil, err
-	}
+func NewCommonMsgDatabase(msgDocModel database.Msg, msg cache.MsgCache, seqUser cache.SeqUser, seqConversation cache.SeqConversationCache, producer mq.Producer) CommonMsgDatabase {
 	return &commonMsgDatabase{
 		msgDocDatabase:  msgDocModel,
 		msgCache:        msg,
 		seqUser:         seqUser,
 		seqConversation: seqConversation,
-		producer:        producerToRedis,
-	}, nil
+		producer:        producer,
+	}
 }
 
 type commonMsgDatabase struct {
@@ -125,12 +122,15 @@ type commonMsgDatabase struct {
 	msgCache        cache.MsgCache
 	seqConversation cache.SeqConversationCache
 	seqUser         cache.SeqUser
-	producer        *kafka.Producer
+	producer        mq.Producer
 }
 
 func (db *commonMsgDatabase) MsgToMQ(ctx context.Context, key string, msg2mq *sdkws.MsgData) error {
-	_, _, err := db.producer.SendMessage(ctx, key, msg2mq)
-	return err
+	data, err := proto.Marshal(msg2mq)
+	if err != nil {
+		return err
+	}
+	return db.producer.SendMessage(ctx, key, data)
 }
 
 func (db *commonMsgDatabase) batchInsertBlock(ctx context.Context, conversationID string, fields []any, key int8, firstSeq int64) error {
@@ -150,6 +150,8 @@ func (db *commonMsgDatabase) batchInsertBlock(ctx context.Context, conversationI
 			}
 		case updateKeyRevoke:
 			_, ok = field.(*model.RevokeModel)
+		case updateKeyEdit:
+			_, ok = field.(*model.EditModel)
 		default:
 			return errs.ErrInternalServer.WrapMsg("key is invalid")
 		}
@@ -171,6 +173,8 @@ func (db *commonMsgDatabase) batchInsertBlock(ctx context.Context, conversationI
 			res, err = db.msgDocDatabase.UpdateMsg(ctx, docID, index, "msg", field)
 		case updateKeyRevoke:
 			res, err = db.msgDocDatabase.UpdateMsg(ctx, docID, index, "revoke", field)
+		case updateKeyEdit:
+			res, err = db.msgDocDatabase.UpdateMsg(ctx, docID, index, "edit", field)
 		}
 		if err != nil {
 			return false, err
@@ -209,6 +213,10 @@ func (db *commonMsgDatabase) batchInsertBlock(ctx context.Context, conversationI
 				doc.Msg[db.msgTable.GetMsgIndex(seq)] = &model.MsgInfoModel{
 					Revoke: fields[j].(*model.RevokeModel),
 				}
+			case updateKeyEdit:
+				doc.Msg[db.msgTable.GetMsgIndex(seq)] = &model.MsgInfoModel{
+					Edit: fields[j].(*model.EditModel),
+				}
 			}
 		}
 		for i, msgInfo := range doc.Msg {
@@ -237,6 +245,13 @@ func (db *commonMsgDatabase) batchInsertBlock(ctx context.Context, conversationI
 
 func (db *commonMsgDatabase) RevokeMsg(ctx context.Context, conversationID string, seq int64, revoke *model.RevokeModel) error {
 	if err := db.batchInsertBlock(ctx, conversationID, []any{revoke}, updateKeyRevoke, seq); err != nil {
+		return err
+	}
+	return db.msgCache.DelMessageBySeqs(ctx, conversationID, []int64{seq})
+}
+
+func (db *commonMsgDatabase) EditMsg(ctx context.Context, conversationID string, seq int64, edit *model.EditModel) error {
+	if err := db.batchInsertBlock(ctx, conversationID, []any{edit}, updateKeyEdit, seq); err != nil {
 		return err
 	}
 	return db.msgCache.DelMessageBySeqs(ctx, conversationID, []int64{seq})
@@ -309,7 +324,7 @@ func (db *commonMsgDatabase) handlerDBMsg(ctx context.Context, cache map[int64][
 		log.ZError(ctx, "json.Unmarshal", err)
 		return
 	}
-	if quoteMsg.QuoteMessage == nil || quoteMsg.QuoteMessage.Content == "" {
+	if quoteMsg.QuoteMessage == nil {
 		return
 	}
 	if quoteMsg.QuoteMessage.Content == "e30=" {
@@ -674,12 +689,18 @@ func (db *commonMsgDatabase) SearchMessage(ctx context.Context, req *pbmsg.Searc
 func (db *commonMsgDatabase) FindOneByDocIDs(ctx context.Context, conversationIDs []string, seqs map[string]int64) (map[string]*sdkws.MsgData, error) {
 	totalMsgs := make(map[string]*sdkws.MsgData)
 	for _, conversationID := range conversationIDs {
-		seq := seqs[conversationID]
+		seq, ok := seqs[conversationID]
+		if !ok {
+			log.ZWarn(ctx, "seq not found for conversationID", errs.New("seq not found for conversation"), "conversationID", conversationID)
+			continue
+		}
 		docID := db.msgTable.GetDocID(conversationID, seq)
 		msgs, err := db.msgDocDatabase.FindOneByDocID(ctx, docID)
 		if err != nil {
-			return nil, err
+			log.ZWarn(ctx, "FindOneByDocID failed", err, "conversationID", conversationID, "docID", docID, "seq", seq)
+			continue
 		}
+
 		index := db.msgTable.GetMsgIndex(seq)
 		totalMsgs[conversationID] = convert.MsgDB2Pb(msgs.Msg[index].Msg)
 	}
@@ -722,13 +743,13 @@ func (db *commonMsgDatabase) DeleteDoc(ctx context.Context, docID string) error 
 	if index <= 0 {
 		return errs.ErrInternalServer.WrapMsg("docID is invalid", "docID", docID)
 	}
-	index, err := strconv.Atoi(docID[index+1:])
+	docIndex, err := strconv.Atoi(docID[index+1:])
 	if err != nil {
 		return errs.WrapMsg(err, "strconv.Atoi", "docID", docID)
 	}
 	conversationID := docID[:index]
 	seqs := make([]int64, db.msgTable.GetSingleGocMsgNum())
-	minSeq := db.msgTable.GetMinSeq(index)
+	minSeq := db.msgTable.GetMinSeq(docIndex)
 	for i := range seqs {
 		seqs[i] = minSeq + int64(i)
 	}

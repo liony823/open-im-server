@@ -17,8 +17,9 @@ package msg
 import (
 	"context"
 	"encoding/json"
-	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
 	"time"
+
+	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
 
 	"github.com/openimsdk/open-im-server/v3/pkg/authverify"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/servererrs"
@@ -41,7 +42,7 @@ func (m *msgServer) RevokeMsg(ctx context.Context, req *msg.RevokeMsgReq) (*msg.
 	if req.Seq < 0 {
 		return nil, errs.ErrArgs.WrapMsg("seq is invalid")
 	}
-	if err := authverify.CheckAccessV3(ctx, req.UserID, m.config.Share.IMAdminUserID); err != nil {
+	if err := authverify.CheckAccess(ctx, req.UserID); err != nil {
 		return nil, err
 	}
 	user, err := m.UserLocalCache.GetUserInfo(ctx, req.UserID)
@@ -62,11 +63,11 @@ func (m *msgServer) RevokeMsg(ctx context.Context, req *msg.RevokeMsgReq) (*msg.
 	data, _ := json.Marshal(msgs[0])
 	log.ZDebug(ctx, "GetMsgBySeqs", "conversationID", req.ConversationID, "seq", req.Seq, "msg", string(data))
 	var role int32
-	if !authverify.IsAppManagerUid(ctx, m.config.Share.IMAdminUserID) {
+	if !authverify.IsAdmin(ctx) {
 		sessionType := msgs[0].SessionType
 		switch sessionType {
 		case constant.SingleChatType:
-			if err := authverify.CheckAccessV3(ctx, msgs[0].SendID, m.config.Share.IMAdminUserID); err != nil {
+			if err := authverify.CheckAccess(ctx, msgs[0].SendID); err != nil {
 				return nil, err
 			}
 			role = user.AppMangerLevel
@@ -79,8 +80,10 @@ func (m *msgServer) RevokeMsg(ctx context.Context, req *msg.RevokeMsgReq) (*msg.
 				switch members[req.UserID].RoleLevel {
 				case constant.GroupOwner:
 				case constant.GroupAdmin:
-					if members[msgs[0].SendID].RoleLevel != constant.GroupOrdinaryUsers {
-						return nil, errs.ErrNoPermission.WrapMsg("no permission")
+					if sendMember, ok := members[msgs[0].SendID]; ok {
+						if sendMember.RoleLevel != constant.GroupOrdinaryUsers {
+							return nil, errs.ErrNoPermission.WrapMsg("no permission")
+						}
 					}
 				default:
 					return nil, errs.ErrNoPermission.WrapMsg("no permission")
@@ -106,8 +109,8 @@ func (m *msgServer) RevokeMsg(ctx context.Context, req *msg.RevokeMsgReq) (*msg.
 	revokerUserID := mcontext.GetOpUserID(ctx)
 	var flag bool
 
-	if len(m.config.Share.IMAdminUserID) > 0 {
-		flag = datautil.Contain(revokerUserID, m.config.Share.IMAdminUserID...)
+	if len(m.config.Share.IMAdminUser.UserIDs) > 0 {
+		flag = datautil.Contain(revokerUserID, m.adminUserIDs...)
 	}
 	tips := sdkws.RevokeMsgTips{
 		RevokerUserID:  revokerUserID,

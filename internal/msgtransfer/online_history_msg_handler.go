@@ -18,15 +18,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/openimsdk/open-im-server/v3/pkg/rpcli"
-	"github.com/openimsdk/tools/discovery"
-	"strconv"
-	"strings"
+	"github.com/openimsdk/tools/mq"
+
 	"sync"
 	"time"
 
-	"github.com/IBM/sarama"
+	"github.com/openimsdk/open-im-server/v3/pkg/rpcli"
+	"github.com/openimsdk/tools/discovery"
+
 	"github.com/go-redis/redis"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/openimsdk/open-im-server/v3/pkg/common/prommetrics"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/controller"
 	"github.com/openimsdk/open-im-server/v3/pkg/msgprocessor"
@@ -37,9 +39,7 @@ import (
 	"github.com/openimsdk/tools/errs"
 	"github.com/openimsdk/tools/log"
 	"github.com/openimsdk/tools/mcontext"
-	"github.com/openimsdk/tools/mq/kafka"
 	"github.com/openimsdk/tools/utils/stringutil"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -64,9 +64,7 @@ type userHasReadSeq struct {
 }
 
 type OnlineHistoryRedisConsumerHandler struct {
-	historyConsumerGroup *kafka.MConsumerGroup
-
-	redisMessageBatches *batcher.Batcher[sarama.ConsumerMessage]
+	redisMessageBatches *batcher.Batcher[ConsumerMessage]
 
 	msgTransferDatabase         controller.MsgTransferDatabase
 	conversationUserHasReadChan chan *userHasReadSeq
@@ -76,12 +74,14 @@ type OnlineHistoryRedisConsumerHandler struct {
 	conversationClient *rpcli.ConversationClient
 }
 
-func NewOnlineHistoryRedisConsumerHandler(ctx context.Context, client discovery.SvcDiscoveryRegistry, config *Config, database controller.MsgTransferDatabase) (*OnlineHistoryRedisConsumerHandler, error) {
-	kafkaConf := config.KafkaConfig
-	historyConsumerGroup, err := kafka.NewMConsumerGroup(kafkaConf.Build(), kafkaConf.ToRedisGroupID, []string{kafkaConf.ToRedisTopic}, false)
-	if err != nil {
-		return nil, err
-	}
+type ConsumerMessage struct {
+	Ctx   context.Context
+	Key   string
+	Value []byte
+	Raw   mq.Message
+}
+
+func NewOnlineHistoryRedisConsumerHandler(ctx context.Context, client discovery.Conn, config *Config, database controller.MsgTransferDatabase) (*OnlineHistoryRedisConsumerHandler, error) {
 	groupConn, err := client.GetConn(ctx, config.Discovery.RpcService.Group)
 	if err != nil {
 		return nil, err
@@ -97,7 +97,7 @@ func NewOnlineHistoryRedisConsumerHandler(ctx context.Context, client discovery.
 	och.conversationClient = rpcli.NewConversationClient(conversationConn)
 	och.wg.Add(1)
 
-	b := batcher.New[sarama.ConsumerMessage](
+	b := batcher.New[ConsumerMessage](
 		batcher.WithSize(size),
 		batcher.WithWorker(worker),
 		batcher.WithInterval(interval),
@@ -109,16 +109,20 @@ func NewOnlineHistoryRedisConsumerHandler(ctx context.Context, client discovery.
 		hashCode := stringutil.GetHashCode(key)
 		return int(hashCode) % och.redisMessageBatches.Worker()
 	}
-	b.Key = func(consumerMessage *sarama.ConsumerMessage) string {
-		return string(consumerMessage.Key)
+	b.Key = func(consumerMessage *ConsumerMessage) string {
+		return consumerMessage.Key
 	}
 	b.Do = och.do
 	och.redisMessageBatches = b
-	och.historyConsumerGroup = historyConsumerGroup
+
+	och.redisMessageBatches.OnComplete = func(lastMessage *ConsumerMessage, totalCount int) {
+		lastMessage.Raw.Mark()
+		lastMessage.Raw.Commit()
+	}
 
 	return &och, nil
 }
-func (och *OnlineHistoryRedisConsumerHandler) do(ctx context.Context, channelID int, val *batcher.Msg[sarama.ConsumerMessage]) {
+func (och *OnlineHistoryRedisConsumerHandler) do(ctx context.Context, channelID int, val *batcher.Msg[ConsumerMessage]) {
 	ctx = mcontext.WithTriggerIDContext(ctx, val.TriggerID())
 	ctxMessages := och.parseConsumerMessages(ctx, val.Val())
 	ctx = withAggregationCtx(ctx, ctxMessages)
@@ -138,58 +142,53 @@ func (och *OnlineHistoryRedisConsumerHandler) do(ctx context.Context, channelID 
 
 func (och *OnlineHistoryRedisConsumerHandler) doSetReadSeq(ctx context.Context, msgs []*ContextMsg) {
 
-	var conversationID string
-	var userSeqMap map[string]int64
+	// Outer map: conversationID -> (userID -> maxHasReadSeq)
+	conversationUserSeq := make(map[string]map[string]int64)
+
 	for _, msg := range msgs {
 		if msg.message.ContentType != constant.HasReadReceipt {
 			continue
 		}
 		var elem sdkws.NotificationElem
 		if err := json.Unmarshal(msg.message.Content, &elem); err != nil {
-			log.ZWarn(ctx, "handlerConversationRead Unmarshal NotificationElem msg err", err, "msg", msg)
+			log.ZWarn(ctx, "Unmarshal NotificationElem error", err, "msg", msg)
 			continue
 		}
 		var tips sdkws.MarkAsReadTips
 		if err := json.Unmarshal([]byte(elem.Detail), &tips); err != nil {
-			log.ZWarn(ctx, "handlerConversationRead Unmarshal MarkAsReadTips msg err", err, "msg", msg)
+			log.ZWarn(ctx, "Unmarshal MarkAsReadTips error", err, "msg", msg)
 			continue
 		}
-		//The conversation ID for each batch of messages processed by the batcher is the same.
-		conversationID = tips.ConversationID
-		if len(tips.Seqs) > 0 {
-			for _, seq := range tips.Seqs {
-				if tips.HasReadSeq < seq {
-					tips.HasReadSeq = seq
-				}
-			}
-			clear(tips.Seqs)
-			tips.Seqs = nil
-		}
-		if tips.HasReadSeq < 0 {
+		if len(tips.ConversationID) == 0 || tips.HasReadSeq < 0 {
 			continue
-		}
-		if userSeqMap == nil {
-			userSeqMap = make(map[string]int64)
 		}
 
-		if userSeqMap[tips.MarkAsReadUserID] > tips.HasReadSeq {
-			continue
+		// Calculate the max seq from tips.Seqs
+		for _, seq := range tips.Seqs {
+			if tips.HasReadSeq < seq {
+				tips.HasReadSeq = seq
+			}
 		}
-		userSeqMap[tips.MarkAsReadUserID] = tips.HasReadSeq
+
+		if _, ok := conversationUserSeq[tips.ConversationID]; !ok {
+			conversationUserSeq[tips.ConversationID] = make(map[string]int64)
+		}
+		if conversationUserSeq[tips.ConversationID][tips.MarkAsReadUserID] < tips.HasReadSeq {
+			conversationUserSeq[tips.ConversationID][tips.MarkAsReadUserID] = tips.HasReadSeq
+		}
 	}
-	if userSeqMap == nil {
-		return
-	}
-	if len(conversationID) == 0 {
-		log.ZWarn(ctx, "conversation err", nil, "conversationID", conversationID)
-	}
-	if err := och.msgTransferDatabase.SetHasReadSeqToDB(ctx, conversationID, userSeqMap); err != nil {
-		log.ZWarn(ctx, "set read seq to db error", err, "conversationID", conversationID, "userSeqMap", userSeqMap)
+	log.ZInfo(ctx, "doSetReadSeq", "conversationUserSeq", conversationUserSeq)
+
+	// persist to db
+	for convID, userSeqMap := range conversationUserSeq {
+		if err := och.msgTransferDatabase.SetHasReadSeqToDB(ctx, convID, userSeqMap); err != nil {
+			log.ZWarn(ctx, "SetHasReadSeqToDB error", err, "conversationID", convID, "userSeqMap", userSeqMap)
+		}
 	}
 
 }
 
-func (och *OnlineHistoryRedisConsumerHandler) parseConsumerMessages(ctx context.Context, consumerMessages []*sarama.ConsumerMessage) []*ContextMsg {
+func (och *OnlineHistoryRedisConsumerHandler) parseConsumerMessages(ctx context.Context, consumerMessages []*ConsumerMessage) []*ContextMsg {
 	var ctxMessages []*ContextMsg
 	for i := 0; i < len(consumerMessages); i++ {
 		ctxMsg := &ContextMsg{}
@@ -199,16 +198,9 @@ func (och *OnlineHistoryRedisConsumerHandler) parseConsumerMessages(ctx context.
 			log.ZWarn(ctx, "msg_transfer Unmarshal msg err", err, string(consumerMessages[i].Value))
 			continue
 		}
-		var arr []string
-		for i, header := range consumerMessages[i].Headers {
-			arr = append(arr, strconv.Itoa(i), string(header.Key), string(header.Value))
-		}
-		log.ZDebug(ctx, "consumer.kafka.GetContextWithMQHeader", "len", len(consumerMessages[i].Headers),
-			"header", strings.Join(arr, ", "))
-		ctxMsg.ctx = kafka.GetContextWithMQHeader(consumerMessages[i].Headers)
+		ctxMsg.ctx = consumerMessages[i].Ctx
 		ctxMsg.message = msgFromMQ
-		log.ZDebug(ctx, "message parse finish", "message", msgFromMQ, "key",
-			string(consumerMessages[i].Key))
+		log.ZDebug(ctx, "message parse finish", "message", msgFromMQ, "key", consumerMessages[i].Key)
 		ctxMessages = append(ctxMessages, ctxMsg)
 	}
 	return ctxMessages
@@ -383,7 +375,9 @@ func (och *OnlineHistoryRedisConsumerHandler) Close() {
 func (och *OnlineHistoryRedisConsumerHandler) toPushTopic(ctx context.Context, key, conversationID string, msgs []*ContextMsg) {
 	for _, v := range msgs {
 		log.ZDebug(ctx, "push msg to topic", "msg", v.message.String())
-		_, _, _ = och.msgTransferDatabase.MsgToPushMQ(v.ctx, key, conversationID, v.message)
+		if err := och.msgTransferDatabase.MsgToPushMQ(v.ctx, key, conversationID, v.message); err != nil {
+			log.ZError(ctx, "msg to push topic error", err, "msg", v.message.String())
+		}
 	}
 }
 
@@ -401,35 +395,10 @@ func withAggregationCtx(ctx context.Context, values []*ContextMsg) context.Conte
 	return mcontext.SetOperationID(ctx, allMessageOperationID)
 }
 
-func (och *OnlineHistoryRedisConsumerHandler) Setup(_ sarama.ConsumerGroupSession) error { return nil }
-func (och *OnlineHistoryRedisConsumerHandler) Cleanup(_ sarama.ConsumerGroupSession) error {
+func (och *OnlineHistoryRedisConsumerHandler) HandlerRedisMessage(msg mq.Message) error { // a instance in the consumer group
+	err := och.redisMessageBatches.Put(msg.Context(), &ConsumerMessage{Ctx: msg.Context(), Key: msg.Key(), Value: msg.Value(), Raw: msg})
+	if err != nil {
+		log.ZWarn(msg.Context(), "put msg to  error", err, "key", msg.Key(), "value", msg.Value())
+	}
 	return nil
-}
-
-func (och *OnlineHistoryRedisConsumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession,
-	claim sarama.ConsumerGroupClaim) error { // a instance in the consumer group
-	log.ZDebug(context.Background(), "online new session msg come", "highWaterMarkOffset",
-		claim.HighWaterMarkOffset(), "topic", claim.Topic(), "partition", claim.Partition())
-	och.redisMessageBatches.OnComplete = func(lastMessage *sarama.ConsumerMessage, totalCount int) {
-		session.MarkMessage(lastMessage, "")
-		session.Commit()
-	}
-	for {
-		select {
-		case msg, ok := <-claim.Messages():
-			if !ok {
-				return nil
-			}
-
-			if len(msg.Value) == 0 {
-				continue
-			}
-			err := och.redisMessageBatches.Put(context.Background(), msg)
-			if err != nil {
-				log.ZWarn(context.Background(), "put msg to  error", err, "msg", msg)
-			}
-		case <-session.Context().Done():
-			return nil
-		}
-	}
 }

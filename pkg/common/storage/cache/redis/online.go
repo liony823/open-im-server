@@ -7,8 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache/cachekey"
+	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache/mcache"
 	"github.com/openimsdk/protocol/constant"
 	"github.com/openimsdk/tools/errs"
 	"github.com/openimsdk/tools/log"
@@ -16,6 +18,9 @@ import (
 )
 
 func NewUserOnline(rdb redis.UniversalClient) cache.OnlineCache {
+	if rdb == nil || config.Standalone() {
+		return mcache.NewOnlineCache()
+	}
 	return &userOnline{
 		rdb:              rdb,
 		expire:           cachekey.OnlineExpire,
@@ -164,8 +169,4 @@ func (s *userOnline) GetOnlineTime(ctx context.Context, userID string) (int64, e
 	}
 
 	return timestamp, nil
-}
-
-func (s *userOnline) DelOnlineTime(ctx context.Context, userID string) error {
-	return s.rdb.Del(ctx, s.getUserLatestOnlineTimeKey(userID)).Err()
 }

@@ -157,10 +157,9 @@ func (s *userServer) getUsersOnlineTime(ctx context.Context, userIDs []string) (
 	res := make([]*pbuser.OnlineTime, 0, len(userIDs))
 	for _, userID := range userIDs {
 		status, err := s.getUserOnlineTime(ctx, userID)
-		if err != nil {
-			return nil, err
+		if err == nil {
+			res = append(res, status)
 		}
-		res = append(res, status)
 	}
 	return res, nil
 }

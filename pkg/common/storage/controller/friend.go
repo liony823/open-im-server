@@ -17,10 +17,11 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/database"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/database/mgo"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/model"
-	"time"
 
 	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache"
 	"github.com/openimsdk/protocol/constant"
@@ -61,10 +62,10 @@ type FriendDatabase interface {
 	PageInWhoseFriends(ctx context.Context, friendUserID string, pagination pagination.Pagination) (total int64, friends []*model.Friend, err error)
 
 	// PageFriendRequestFromMe retrieves the friend requests sent by the user with pagination
-	PageFriendRequestFromMe(ctx context.Context, userID string, pagination pagination.Pagination) (total int64, friends []*model.FriendRequest, err error)
+	PageFriendRequestFromMe(ctx context.Context, userID string, handleResults []int, pagination pagination.Pagination) (total int64, friends []*model.FriendRequest, err error)
 
 	// PageFriendRequestToMe retrieves the friend requests received by the user with pagination
-	PageFriendRequestToMe(ctx context.Context, userID string, pagination pagination.Pagination) (total int64, friends []*model.FriendRequest, err error)
+	PageFriendRequestToMe(ctx context.Context, userID string, handleResults []int, pagination pagination.Pagination) (total int64, friends []*model.FriendRequest, err error)
 
 	// FindFriendsWithError fetches specified friends of a user and returns an error if any do not exist
 	FindFriendsWithError(ctx context.Context, ownerUserID string, friendUserIDs []string) (friends []*model.Friend, err error)
@@ -87,18 +88,20 @@ type FriendDatabase interface {
 	FindFriendUserID(ctx context.Context, friendUserID string) ([]string, error)
 
 	OwnerIncrVersion(ctx context.Context, ownerUserID string, friendUserIDs []string, state int32) error
+
+	GetUnhandledCount(ctx context.Context, userID string, ts int64) (int64, error)
 }
 
 type friendDatabase struct {
-	friend        database.Friend
-	friendRequest database.FriendRequest
+	friend         database.Friend
+	friendRequest  database.FriendRequest
 	friendRelation database.FriendRelation
-	tx            tx.Tx
-	cache         cache.FriendCache
+	tx             tx.Tx
+	cache          cache.FriendCache
 }
 
-func NewFriendDatabase(friend database.Friend, friendRequest database.FriendRequest, friendRelation database.FriendRelation, cache cache.FriendCache, tx tx.Tx) FriendDatabase {
-	return &friendDatabase{friend: friend, friendRequest: friendRequest, friendRelation: friendRelation, cache: cache, tx: tx}
+func NewFriendDatabase(friend database.Friend, friendRequest database.FriendRequest, cache cache.FriendCache, tx tx.Tx) FriendDatabase {
+	return &friendDatabase{friend: friend, friendRequest: friendRequest, cache: cache, tx: tx}
 }
 
 // CheckIn verifies if user2 is in user1's friend list (inUser1Friends returns true) and
@@ -335,13 +338,13 @@ func (f *friendDatabase) PageInWhoseFriends(ctx context.Context, friendUserID st
 }
 
 // PageFriendRequestFromMe retrieves friend requests sent by me. It does not return an error if the result is empty.
-func (f *friendDatabase) PageFriendRequestFromMe(ctx context.Context, userID string, pagination pagination.Pagination) (total int64, friends []*model.FriendRequest, err error) {
-	return f.friendRequest.FindFromUserID(ctx, userID, pagination)
+func (f *friendDatabase) PageFriendRequestFromMe(ctx context.Context, userID string, handleResults []int, pagination pagination.Pagination) (total int64, friends []*model.FriendRequest, err error) {
+	return f.friendRequest.FindFromUserID(ctx, userID, handleResults, pagination)
 }
 
 // PageFriendRequestToMe retrieves friend requests received by me. It does not return an error if the result is empty.
-func (f *friendDatabase) PageFriendRequestToMe(ctx context.Context, userID string, pagination pagination.Pagination) (total int64, friends []*model.FriendRequest, err error) {
-	return f.friendRequest.FindToUserID(ctx, userID, pagination)
+func (f *friendDatabase) PageFriendRequestToMe(ctx context.Context, userID string, handleResults []int, pagination pagination.Pagination) (total int64, friends []*model.FriendRequest, err error) {
+	return f.friendRequest.FindToUserID(ctx, userID, handleResults, pagination)
 }
 
 // FindFriendsWithError retrieves specified friends' information for ownerUserID. Returns an error if any friend does not exist.
@@ -397,4 +400,8 @@ func (f *friendDatabase) OwnerIncrVersion(ctx context.Context, ownerUserID strin
 		return err
 	}
 	return f.cache.DelMaxFriendVersion(ownerUserID).ChainExecDel(ctx)
+}
+
+func (f *friendDatabase) GetUnhandledCount(ctx context.Context, userID string, ts int64) (int64, error) {
+	return f.friendRequest.GetUnhandledCount(ctx, userID, ts)
 }

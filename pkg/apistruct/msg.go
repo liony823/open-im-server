@@ -63,9 +63,11 @@ type FileElem struct {
 	FileSize  int64  `mapstructure:"fileSize"  validate:"required"`
 }
 type AtElem struct {
-	Text       string   `mapstructure:"text"`
-	AtUserList []string `mapstructure:"atUserList" validate:"required,max=1000"`
-	IsAtSelf   bool     `mapstructure:"isAtSelf"`
+	Text         string     `mapstructure:"text"`
+	AtUserList   []string   `mapstructure:"atUserList" validate:"required,max=1000"`
+	AtUsersInfo  []*AtInfo  `json:"atUsersInfo"`
+	QuoteMessage *MsgStruct `json:"quoteMessage"`
+	IsAtSelf     bool       `mapstructure:"isAtSelf"`
 }
 type LocationElem struct {
 	Description string  `mapstructure:"description"`
@@ -81,6 +83,10 @@ type CustomElem struct {
 
 type TextElem struct {
 	Content string `json:"content" validate:"required"`
+}
+
+type MarkdownTextElem struct {
+	Content string `mapstructure:"content" validate:"required"`
 }
 
 type StreamMsgElem struct {
@@ -153,4 +159,9 @@ type MsgStruct struct {
 	LocationElem         *LocationElem          `json:"locationElem,omitempty"`
 	CustomElem           *CustomElem            `json:"customElem,omitempty"`
 	QuoteElem            *QuoteElem             `json:"quoteElem,omitempty"`
+}
+
+type AtInfo struct {
+	AtUserID      string `json:"atUserID,omitempty"`
+	GroupNickname string `json:"groupNickname,omitempty"`
 }

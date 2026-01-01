@@ -18,11 +18,17 @@ import (
 	"context"
 	"errors"
 
+	"github.com/openimsdk/open-im-server/v3/pkg/common/convert"
+	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache"
+	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache/mcache"
+	"github.com/openimsdk/open-im-server/v3/pkg/common/storage/database/mgo"
+	"github.com/openimsdk/open-im-server/v3/pkg/dbbuild"
+	"github.com/openimsdk/open-im-server/v3/pkg/localcache"
+	"github.com/openimsdk/open-im-server/v3/pkg/rpccache"
 	"github.com/openimsdk/open-im-server/v3/pkg/rpcli"
 
 	"github.com/openimsdk/open-im-server/v3/pkg/common/config"
 	redis2 "github.com/openimsdk/open-im-server/v3/pkg/common/storage/cache/redis"
-	"github.com/openimsdk/tools/db/redisutil"
 	"github.com/openimsdk/tools/utils/datautil"
 	"github.com/redis/go-redis/v9"
 
@@ -43,38 +49,66 @@ import (
 type authServer struct {
 	pbauth.UnimplementedAuthServer
 	authDatabase   controller.AuthDatabase
-	RegisterCenter discovery.SvcDiscoveryRegistry
+	AuthLocalCache *rpccache.AuthLocalCache
+	RegisterCenter discovery.Conn
 	config         *Config
 	userClient     *rpcli.UserClient
+	adminUserIDs   []string
 }
 
 type Config struct {
-	RpcConfig   config.Auth
-	RedisConfig config.Redis
-	Share       config.Share
-	Discovery   config.Discovery
+	RpcConfig        config.Auth
+	RedisConfig      config.Redis
+	MongoConfig      config.Mongo
+	Share            config.Share
+	LocalCacheConfig config.LocalCache
+	Discovery        config.Discovery
 }
 
-func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryRegistry, server *grpc.Server) error {
-	rdb, err := redisutil.NewRedisClient(ctx, config.RedisConfig.Build())
+func Start(ctx context.Context, config *Config, client discovery.SvcDiscoveryRegistry, server grpc.ServiceRegistrar) error {
+	dbb := dbbuild.NewBuilder(&config.MongoConfig, &config.RedisConfig)
+	rdb, err := dbb.Redis(ctx)
 	if err != nil {
 		return err
+	}
+	var token cache.TokenModel
+	if rdb == nil {
+		mdb, err := dbb.Mongo(ctx)
+		if err != nil {
+			return err
+		}
+		mc, err := mgo.NewCacheMgo(mdb.GetDB())
+		if err != nil {
+			return err
+		}
+		token = mcache.NewTokenCacheModel(mc, config.RpcConfig.TokenPolicy.Expire)
+	} else {
+		token = redis2.NewTokenCacheModel(rdb, &config.LocalCacheConfig, config.RpcConfig.TokenPolicy.Expire)
 	}
 	userConn, err := client.GetConn(ctx, config.Discovery.RpcService.User)
 	if err != nil {
 		return err
 	}
+	authConn, err := client.GetConn(ctx, config.Discovery.RpcService.Auth)
+	if err != nil {
+		return err
+	}
+
+	localcache.InitLocalCache(&config.LocalCacheConfig)
+
 	pbauth.RegisterAuthServer(server, &authServer{
 		RegisterCenter: client,
 		authDatabase: controller.NewAuthDatabase(
-			redis2.NewTokenCacheModel(rdb, config.RpcConfig.TokenPolicy.Expire),
+			token,
 			config.Share.Secret,
 			config.RpcConfig.TokenPolicy.Expire,
 			config.Share.MultiLogin,
-			config.Share.IMAdminUserID,
+			config.Share.IMAdminUser.UserIDs,
 		),
-		config:     config,
-		userClient: rpcli.NewUserClient(userConn),
+		AuthLocalCache: rpccache.NewAuthLocalCache(rpcli.NewAuthClient(authConn), &config.LocalCacheConfig, rdb),
+		config:         config,
+		userClient:     rpcli.NewUserClient(userConn),
+		adminUserIDs:   config.Share.IMAdminUser.UserIDs,
 	})
 	return nil
 }
@@ -85,8 +119,8 @@ func (s *authServer) GetAdminToken(ctx context.Context, req *pbauth.GetAdminToke
 		return nil, errs.ErrNoPermission.WrapMsg("secret invalid")
 	}
 
-	if !datautil.Contain(req.UserID, s.config.Share.IMAdminUserID...) {
-		return nil, errs.ErrArgs.WrapMsg("userID is error.", "userID", req.UserID, "adminUserID", s.config.Share.IMAdminUserID)
+	if !datautil.Contain(req.UserID, s.adminUserIDs...) {
+		return nil, errs.ErrArgs.WrapMsg("userID is error.", "userID", req.UserID, "adminUserID", s.adminUserIDs)
 
 	}
 
@@ -100,13 +134,14 @@ func (s *authServer) GetAdminToken(ctx context.Context, req *pbauth.GetAdminToke
 	}
 
 	prommetrics.UserLoginCounter.Inc()
+
 	resp.Token = token
 	resp.ExpireTimeSeconds = s.config.RpcConfig.TokenPolicy.Expire * 24 * 60 * 60
 	return &resp, nil
 }
 
 func (s *authServer) GetUserToken(ctx context.Context, req *pbauth.GetUserTokenReq) (*pbauth.GetUserTokenResp, error) {
-	if err := authverify.CheckAdmin(ctx, s.config.Share.IMAdminUserID); err != nil {
+	if err := authverify.CheckAdmin(ctx); err != nil {
 		return nil, err
 	}
 
@@ -116,7 +151,7 @@ func (s *authServer) GetUserToken(ctx context.Context, req *pbauth.GetUserTokenR
 
 	resp := pbauth.GetUserTokenResp{}
 
-	if authverify.IsManagerUserID(req.UserID, s.config.Share.IMAdminUserID) {
+	if authverify.CheckUserIsAdmin(ctx, req.UserID) {
 		return nil, errs.ErrNoPermission.WrapMsg("don't get Admin token")
 	}
 	user, err := s.userClient.GetUserInfo(ctx, req.UserID)
@@ -130,9 +165,21 @@ func (s *authServer) GetUserToken(ctx context.Context, req *pbauth.GetUserTokenR
 	if err != nil {
 		return nil, err
 	}
+
 	resp.Token = token
 	resp.ExpireTimeSeconds = s.config.RpcConfig.TokenPolicy.Expire * 24 * 60 * 60
 	return &resp, nil
+}
+
+func (s *authServer) GetExistingToken(ctx context.Context, req *pbauth.GetExistingTokenReq) (*pbauth.GetExistingTokenResp, error) {
+	m, err := s.authDatabase.GetTokensWithoutError(ctx, req.UserID, int(req.PlatformID))
+	if err != nil {
+		return nil, err
+	}
+
+	return &pbauth.GetExistingTokenResp{
+		TokenStates: convert.TokenMapDB2Pb(m),
+	}, nil
 }
 
 func (s *authServer) parseToken(ctx context.Context, tokensString string) (claims *tokenverify.Claims, err error) {
@@ -140,15 +187,19 @@ func (s *authServer) parseToken(ctx context.Context, tokensString string) (claim
 	if err != nil {
 		return nil, err
 	}
-	isAdmin := authverify.IsManagerUserID(claims.UserID, s.config.Share.IMAdminUserID)
-	if isAdmin {
-		return claims, nil
-	}
-	m, err := s.authDatabase.GetTokensWithoutError(ctx, claims.UserID, claims.PlatformID)
+
+	m, err := s.AuthLocalCache.GetExistingToken(ctx, claims.UserID, claims.PlatformID)
 	if err != nil {
 		return nil, err
 	}
+
 	if len(m) == 0 {
+		isAdmin := authverify.CheckUserIsAdmin(ctx, claims.UserID)
+		if isAdmin {
+			if err = s.authDatabase.GetTemporaryTokensWithoutError(ctx, claims.UserID, claims.PlatformID, tokensString); err == nil {
+				return claims, nil
+			}
+		}
 		return nil, servererrs.ErrTokenNotExist.Wrap()
 	}
 	if v, ok := m[tokensString]; ok {
@@ -159,6 +210,13 @@ func (s *authServer) parseToken(ctx context.Context, tokensString string) (claim
 			return nil, servererrs.ErrTokenKicked.Wrap()
 		default:
 			return nil, errs.Wrap(errs.ErrTokenUnknown)
+		}
+	} else {
+		isAdmin := authverify.CheckUserIsAdmin(ctx, claims.UserID)
+		if isAdmin {
+			if err = s.authDatabase.GetTemporaryTokensWithoutError(ctx, claims.UserID, claims.PlatformID, tokensString); err == nil {
+				return claims, nil
+			}
 		}
 	}
 	return nil, servererrs.ErrTokenNotExist.Wrap()
@@ -177,7 +235,7 @@ func (s *authServer) ParseToken(ctx context.Context, req *pbauth.ParseTokenReq) 
 }
 
 func (s *authServer) ForceLogout(ctx context.Context, req *pbauth.ForceLogoutReq) (*pbauth.ForceLogoutResp, error) {
-	if err := authverify.CheckAdmin(ctx, s.config.Share.IMAdminUserID); err != nil {
+	if err := authverify.CheckAdmin(ctx); err != nil {
 		return nil, err
 	}
 	if err := s.forceKickOff(ctx, req.UserID, req.PlatformID); err != nil {
@@ -192,7 +250,7 @@ func (s *authServer) forceKickOff(ctx context.Context, userID string, platformID
 		return err
 	}
 	for _, v := range conns {
-		log.ZDebug(ctx, "forceKickOff", "conn", v.Target())
+		log.ZDebug(ctx, "forceKickOff", "userID", userID, "platformID", platformID)
 		client := msggateway.NewMsgGatewayClient(v)
 		kickReq := &msggateway.KickUserOfflineReq{KickUserIDList: []string{userID}, PlatformID: platformID}
 		_, err := client.KickUserOffline(ctx, kickReq)

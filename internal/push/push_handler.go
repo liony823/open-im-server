@@ -3,12 +3,8 @@ package push
 import (
 	"context"
 	"encoding/json"
-	"github.com/openimsdk/open-im-server/v3/pkg/rpcli"
-	"math/rand"
-	"strconv"
 	"time"
 
-	"github.com/IBM/sarama"
 	"github.com/openimsdk/open-im-server/v3/internal/push/offlinepush"
 	"github.com/openimsdk/open-im-server/v3/internal/push/offlinepush/options"
 	"github.com/openimsdk/open-im-server/v3/pkg/common/prommetrics"
@@ -16,6 +12,7 @@ import (
 	"github.com/openimsdk/open-im-server/v3/pkg/common/webhook"
 	"github.com/openimsdk/open-im-server/v3/pkg/msgprocessor"
 	"github.com/openimsdk/open-im-server/v3/pkg/rpccache"
+	"github.com/openimsdk/open-im-server/v3/pkg/rpcli"
 	"github.com/openimsdk/open-im-server/v3/pkg/util/conversationutil"
 	"github.com/openimsdk/protocol/constant"
 	"github.com/openimsdk/protocol/msggateway"
@@ -24,7 +21,6 @@ import (
 	"github.com/openimsdk/tools/discovery"
 	"github.com/openimsdk/tools/log"
 	"github.com/openimsdk/tools/mcontext"
-	"github.com/openimsdk/tools/mq/kafka"
 	"github.com/openimsdk/tools/utils/datautil"
 	"github.com/openimsdk/tools/utils/jsonutil"
 	"github.com/openimsdk/tools/utils/timeutil"
@@ -33,11 +29,11 @@ import (
 )
 
 type ConsumerHandler struct {
-	pushConsumerGroup      *kafka.MConsumerGroup
+	//pushConsumerGroup      mq.Consumer
 	offlinePusher          offlinepush.OfflinePusher
 	onlinePusher           OnlinePusher
 	pushDatabase           controller.PushDatabase
-	onlineCache            *rpccache.OnlineCache
+	onlineCache            rpccache.OnlineCache
 	groupLocalCache        *rpccache.GroupLocalCache
 	conversationLocalCache *rpccache.ConversationLocalCache
 	webhookClient          *webhook.Client
@@ -48,15 +44,7 @@ type ConsumerHandler struct {
 	conversationClient     *rpcli.ConversationClient
 }
 
-func NewConsumerHandler(ctx context.Context, config *Config, database controller.PushDatabase, offlinePusher offlinepush.OfflinePusher, rdb redis.UniversalClient,
-	client discovery.SvcDiscoveryRegistry) (*ConsumerHandler, error) {
-	var consumerHandler ConsumerHandler
-	var err error
-	consumerHandler.pushConsumerGroup, err = kafka.NewMConsumerGroup(config.KafkaConfig.Build(), config.KafkaConfig.ToPushGroupID,
-		[]string{config.KafkaConfig.ToPushTopic}, true)
-	if err != nil {
-		return nil, err
-	}
+func NewConsumerHandler(ctx context.Context, config *Config, database controller.PushDatabase, offlinePusher offlinepush.OfflinePusher, rdb redis.UniversalClient, client discovery.Conn) (*ConsumerHandler, error) {
 	userConn, err := client.GetConn(ctx, config.Discovery.RpcService.User)
 	if err != nil {
 		return nil, err
@@ -73,13 +61,18 @@ func NewConsumerHandler(ctx context.Context, config *Config, database controller
 	if err != nil {
 		return nil, err
 	}
+	onlinePusher, err := NewOnlinePusher(client, config)
+	if err != nil {
+		return nil, err
+	}
+	var consumerHandler ConsumerHandler
 	consumerHandler.userClient = rpcli.NewUserClient(userConn)
 	consumerHandler.groupClient = rpcli.NewGroupClient(groupConn)
 	consumerHandler.msgClient = rpcli.NewMsgClient(msgConn)
 	consumerHandler.conversationClient = rpcli.NewConversationClient(conversationConn)
 
 	consumerHandler.offlinePusher = offlinePusher
-	consumerHandler.onlinePusher = NewOnlinePusher(client, config)
+	consumerHandler.onlinePusher = onlinePusher
 	consumerHandler.groupLocalCache = rpccache.NewGroupLocalCache(consumerHandler.groupClient, &config.LocalCacheConfig, rdb)
 	consumerHandler.conversationLocalCache = rpccache.NewConversationLocalCache(consumerHandler.conversationClient, &config.LocalCacheConfig, rdb)
 	consumerHandler.webhookClient = webhook.NewWebhookClient(config.WebhooksConfig.URL)
@@ -92,7 +85,7 @@ func NewConsumerHandler(ctx context.Context, config *Config, database controller
 	return &consumerHandler, nil
 }
 
-func (c *ConsumerHandler) handleMs2PsChat(ctx context.Context, msg []byte) {
+func (c *ConsumerHandler) HandleMs2PsChat(ctx context.Context, msg []byte) {
 	msgFromMQ := pbpush.PushMsgReq{}
 	if err := proto.Unmarshal(msg, &msgFromMQ); err != nil {
 		log.ZError(ctx, "push Unmarshal msg err", err, "msg", string(msg))
@@ -126,25 +119,8 @@ func (c *ConsumerHandler) handleMs2PsChat(ctx context.Context, msg []byte) {
 	}
 }
 
-func (*ConsumerHandler) Setup(sarama.ConsumerGroupSession) error { return nil }
-
-func (*ConsumerHandler) Cleanup(sarama.ConsumerGroupSession) error { return nil }
-
-func (c *ConsumerHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	c.onlineCache.Lock.Lock()
-	for c.onlineCache.CurrentPhase.Load() < rpccache.DoSubscribeOver {
-		c.onlineCache.Cond.Wait()
-	}
-	c.onlineCache.Lock.Unlock()
-	ctx := mcontext.SetOperationID(context.TODO(), strconv.FormatInt(time.Now().UnixNano()+int64(rand.Uint32()), 10))
-	log.ZInfo(ctx, "begin consume messages")
-
-	for msg := range claim.Messages() {
-		ctx := c.pushConsumerGroup.GetContextFromMsg(msg)
-		c.handleMs2PsChat(ctx, msg.Value)
-		sess.MarkMessage(msg, "")
-	}
-	return nil
+func (c *ConsumerHandler) WaitCache() {
+	c.onlineCache.WaitCache()
 }
 
 // Push2User Suitable for two types of conversations, one is SingleChatType and the other is NotificationChatType.
@@ -152,24 +128,24 @@ func (c *ConsumerHandler) Push2User(ctx context.Context, userIDs []string, msg *
 	log.ZInfo(ctx, "Get msg from msg_transfer And push msg", "userIDs", userIDs, "msg", msg.String())
 	defer func(duration time.Time) {
 		t := time.Since(duration)
-		log.ZInfo(ctx, "Get msg from msg_transfer And push msg", "msg", msg.String(), "time cost", t)
+		log.ZInfo(ctx, "Get msg from msg_transfer And push msg end", "msg", msg.String(), "time cost", t)
 	}(time.Now())
 	if err := c.webhookBeforeOnlinePush(ctx, &c.config.WebhooksConfig.BeforeOnlinePush, userIDs, msg); err != nil {
 		return err
 	}
-	log.ZInfo(ctx, "webhookBeforeOnlinePush end")
 
 	wsResults, err := c.GetConnsAndOnlinePush(ctx, msg, userIDs)
 	if err != nil {
 		return err
 	}
 
-	log.ZInfo(ctx, "single and notification push result", "result", wsResults, "msg", msg, "push_to_userID", userIDs)
+	log.ZDebug(ctx, "single and notification push result", "result", wsResults, "msg", msg, "push_to_userID", userIDs)
+	log.ZInfo(ctx, "single and notification push end")
 
 	if !c.shouldPushOffline(ctx, msg) {
 		return nil
 	}
-	log.ZInfo(ctx, "shouldPushOffline end")
+	log.ZInfo(ctx, "pushOffline start")
 
 	for _, v := range wsResults {
 		//message sender do not need offline push
@@ -188,14 +164,14 @@ func (c *ConsumerHandler) Push2User(ctx context.Context, userIDs []string, msg *
 	if err = c.webhookBeforeOfflinePush(ctx, &c.config.WebhooksConfig.BeforeOfflinePush, needOfflinePushUserID, msg, &offlinePushUserID); err != nil {
 		return err
 	}
-	log.ZInfo(ctx, "webhookBeforeOfflinePush end")
 
 	if len(offlinePushUserID) > 0 {
 		needOfflinePushUserID = offlinePushUserID
 	}
 	err = c.offlinePushMsg(ctx, msg, needOfflinePushUserID)
 	if err != nil {
-		log.ZWarn(ctx, "offlinePushMsg failed", err, "needOfflinePushUserID", needOfflinePushUserID, "msg", msg)
+		log.ZDebug(ctx, "offlinePushMsg failed", err, "needOfflinePushUserID", needOfflinePushUserID, "msg", msg)
+		log.ZWarn(ctx, "offlinePushMsg failed", err, "needOfflinePushUserID length", len(needOfflinePushUserID), "msg", msg)
 		return nil
 	}
 
@@ -207,7 +183,10 @@ func (c *ConsumerHandler) shouldPushOffline(_ context.Context, msg *sdkws.MsgDat
 	if !isOfflinePush {
 		return false
 	}
-	if msg.ContentType == constant.SignalingNotification {
+	switch msg.ContentType {
+	case constant.RoomParticipantsConnectedNotification:
+		return false
+	case constant.RoomParticipantsDisconnectedNotification:
 		return false
 	}
 	return true
@@ -250,26 +229,24 @@ func (c *ConsumerHandler) Push2Group(ctx context.Context, groupID string, msg *s
 		&pushToUserIDs); err != nil {
 		return err
 	}
-	log.ZInfo(ctx, "webhookBeforeGroupOnlinePush end")
 
 	err = c.groupMessagesHandler(ctx, groupID, &pushToUserIDs, msg)
 	if err != nil {
 		return err
 	}
-	log.ZInfo(ctx, "groupMessagesHandler end")
 
 	wsResults, err := c.GetConnsAndOnlinePush(ctx, msg, pushToUserIDs)
 	if err != nil {
 		return err
 	}
 
-	log.ZInfo(ctx, "group push result", "result", wsResults, "msg", msg)
+	log.ZDebug(ctx, "group push result", "result", wsResults, "msg", msg)
+	log.ZInfo(ctx, "online group push end")
 
 	if !c.shouldPushOffline(ctx, msg) {
 		return nil
 	}
 	needOfflinePushUserIDs := c.onlinePusher.GetOnlinePushFailedUserIDs(ctx, msg, wsResults, &pushToUserIDs)
-	log.ZInfo(ctx, "GetOnlinePushFailedUserIDs end")
 	//filter some user, like don not disturb or don't need offline push etc.
 	needOfflinePushUserIDs, err = c.filterGroupMessageOfflinePush(ctx, groupID, msg, needOfflinePushUserIDs)
 	if err != nil {
@@ -297,9 +274,11 @@ func (c *ConsumerHandler) asyncOfflinePush(ctx context.Context, needOfflinePushU
 		needOfflinePushUserIDs = offlinePushUserIDs
 	}
 	if err := c.pushDatabase.MsgToOfflinePushMQ(ctx, conversationutil.GenConversationUniqueKeyForSingle(msg.SendID, msg.RecvID), needOfflinePushUserIDs, msg); err != nil {
-		log.ZError(ctx, "Msg To OfflinePush MQ error", err, "needOfflinePushUserIDs",
+		log.ZDebug(ctx, "Msg To OfflinePush MQ error", err, "needOfflinePushUserIDs",
 			needOfflinePushUserIDs, "msg", msg)
-		prommetrics.SingleChatMsgProcessFailedCounter.Inc()
+		log.ZWarn(ctx, "Msg To OfflinePush MQ error", err, "needOfflinePushUserIDs length",
+			len(needOfflinePushUserIDs), "msg", msg)
+		prommetrics.GroupChatMsgProcessFailedCounter.Inc()
 		return
 	}
 }
@@ -338,8 +317,8 @@ func (c *ConsumerHandler) groupMessagesHandler(ctx context.Context, groupID stri
 					return err
 				}
 				log.ZDebug(ctx, "GroupDismissedNotificationInfo****", "groupID", groupID, "num", len(*pushToUserIDs), "list", pushToUserIDs)
-				if len(c.config.Share.IMAdminUserID) > 0 {
-					ctx = mcontext.WithOpUserIDContext(ctx, c.config.Share.IMAdminUserID[0])
+				if len(c.config.Share.IMAdminUser.UserIDs) > 0 {
+					ctx = mcontext.WithOpUserIDContext(ctx, c.config.Share.IMAdminUser.UserIDs[0])
 				}
 				defer func(groupID string) {
 					if err := c.groupClient.DismissGroup(ctx, groupID, true); err != nil {
