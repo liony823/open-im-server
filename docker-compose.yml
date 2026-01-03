@@ -24,19 +24,11 @@ services:
           rs.initiate({
             _id: \"rs0\",
             members: [
-              { _id: 0, host: \"mongo:27017\", priority: 3 },
-              { _id: 1, host: \"mongo2:27017\", priority: 2 },
-              { _id: 2, host: \"mongo3:27017\", priority: 1 }
+              { _id: 0, host: \"localhost:27017\" }
             ]
           });
         }
       " &&
-
-      echo "Waiting for replica set to be ready..." &&
-      until mongosh -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval "rs.isMaster().ismaster" | grep true; do
-        echo "Waiting for mongo to become primary..."
-        sleep 1
-      done &&
 
       mongosh -u $$MONGO_INITDB_ROOT_USERNAME -p $$MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval "
         db = db.getSiblingDB(\"$$MONGO_INITDB_DATABASE\");
@@ -72,48 +64,6 @@ services:
       - MONGO_OPENIM_PASSWORD=openIM123
     ports:
       - "37017:27017"
-    networks:
-      - openim
-
-  mongo2:
-    image: "${MONGO_IMAGE}"
-    container_name: mongo2
-    command: mongod --bind_ip_all --replSet rs0 --auth --wiredTigerCacheSizeGB 1 --keyFile /data/configdb/mongodb.key
-    volumes:
-      - "${DATA_DIR}/mongodb.key:/data/configdb/mongodb.key"
-      - "${DATA_DIR}/components/mongodb2/data/db:/data/db"
-      - "${DATA_DIR}/components/mongodb2/data/logs:/data/logs"
-      - "${DATA_DIR}/components/mongodb2/data/conf:/etc/mongo"
-    environment:
-      - TZ=Asia/Shanghai
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=openIM123
-    restart: always
-    depends_on:
-      - mongo
-    ports:
-      - "37018:27017"
-    networks:
-      - openim
-
-  mongo3:
-    image: "${MONGO_IMAGE}"
-    container_name: mongo3
-    command: mongod --bind_ip_all --replSet rs0 --auth --wiredTigerCacheSizeGB 1 --keyFile /data/configdb/mongodb.key
-    volumes:
-      - "${DATA_DIR}/mongodb.key:/data/configdb/mongodb.key"
-      - "${DATA_DIR}/components/mongodb3/data/db:/data/db"
-      - "${DATA_DIR}/components/mongodb3/data/logs:/data/logs"
-      - "${DATA_DIR}/components/mongodb3/data/conf:/etc/mongo"
-    environment:
-      - TZ=Asia/Shanghai
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=openIM123
-    restart: always
-    depends_on:
-      - mongo
-    ports:
-      - "37019:27017"
     networks:
       - openim
 

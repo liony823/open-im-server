@@ -774,6 +774,23 @@ func (db *commonMsgDatabase) handlerDeleteAndRevoked(ctx context.Context, userID
 			msg.Msg.Content = ""
 			msg.Msg.Status = constant.MsgDeleted
 		}
+		// Handle edited messages - update content with new content
+		if msg.Edit != nil && msg.Edit.NewContent != "" {
+			// For text messages, the content should be the TextElem JSON structure
+			if msg.Edit.ContentType == constant.Text {
+				textElem := struct {
+					Content string `json:"content"`
+				}{Content: msg.Edit.NewContent}
+				content, err := jsonutil.JsonMarshal(&textElem)
+				if err != nil {
+					log.ZWarn(ctx, "handlerDeleteAndRevoked JsonMarshal TextElem", err, "msg", msg)
+				} else {
+					msg.Msg.Content = string(content)
+				}
+			} else {
+				msg.Msg.Content = msg.Edit.NewContent
+			}
+		}
 		if msg.Revoke == nil {
 			continue
 		}
