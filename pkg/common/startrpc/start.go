@@ -101,7 +101,9 @@ func Start[T any](ctx context.Context, discovery *conf.Discovery, prometheusConf
 	}
 
 	defer client.Close()
-	client.AddOption(mw.GrpcClient(), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDefaultServiceConfig(fmt.Sprintf(`{"LoadBalancingPolicy": "%s"}`, "round_robin")))
+	// 添加 retryPolicy 以应对 msg 等 RPC 服务瞬时不可用（重启、connection refused）
+	serviceConfig := `{"loadBalancingPolicy":"round_robin","methodConfig":[{"name":[{"service":"","method":""}],"retryPolicy":{"maxAttempts":5,"initialBackoff":"0.5s","maxBackoff":"5s","backoffMultiplier":2,"retryableStatusCodes":["UNAVAILABLE"]}}]}`
+	client.AddOption(mw.GrpcClient(), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDefaultServiceConfig(serviceConfig))
 
 	// var reg *prometheus.Registry
 	// var metric *grpcprometheus.ServerMetrics

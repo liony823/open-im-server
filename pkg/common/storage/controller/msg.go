@@ -718,17 +718,17 @@ func (db *commonMsgDatabase) GetMaxSeqsWithTime(ctx context.Context, conversatio
 }
 
 func (db *commonMsgDatabase) DeleteDoc(ctx context.Context, docID string) error {
-	index := strings.LastIndex(docID, ":")
-	if index <= 0 {
+	sepIdx := strings.LastIndex(docID, ":")
+	if sepIdx <= 0 {
 		return errs.ErrInternalServer.WrapMsg("docID is invalid", "docID", docID)
 	}
-	index, err := strconv.Atoi(docID[index+1:])
+	seqIndex, err := strconv.Atoi(docID[sepIdx+1:])
 	if err != nil {
 		return errs.WrapMsg(err, "strconv.Atoi", "docID", docID)
 	}
-	conversationID := docID[:index]
+	conversationID := docID[:sepIdx]
 	seqs := make([]int64, db.msgTable.GetSingleGocMsgNum())
-	minSeq := db.msgTable.GetMinSeq(index)
+	minSeq := db.msgTable.GetMinSeq(seqIndex)
 	for i := range seqs {
 		seqs[i] = minSeq + int64(i)
 	}
